@@ -1,0 +1,19 @@
+/* This file is appended after the safe base skin. Keep controls as live DOM. */
+
+html.codeface main.main-surface {
+  border-color: var(--cf-line) !important;
+}
+
+html.codeface main.main-surface.codeface-home-shell {
+  background-position: var(--codeface-background-position, center center) !important;
+}
+
+html.codeface .codeface-home > div:first-child > div:first-child > div:first-child {
+  border-radius: 28px !important;
+  border-color: color-mix(in srgb, var(--cf-green) 45%, transparent) !important;
+}
+
+html.codeface[data-codeface-shell="light"] .composer-surface-chrome {
+  border-color: var(--cf-line) !important;
+  box-shadow: 0 14px 34px color-mix(in srgb, var(--cf-purple) 12%, transparent) !important;
+}

@@ -1,0 +1,12 @@
+**/.DS_Store
+*.log
+*.tmp
+.idea/
+.vscode/
+README.preview.html
+docs/readme-preview.html
+release/
+runtime/
+/target/
+/dist/
+/.codex-qa/

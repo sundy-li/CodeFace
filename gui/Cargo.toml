@@ -1,0 +1,28 @@
+[package]
+name = "codeface"
+version = "1.0.0"
+edition = "2024"
+description = "Native cross-platform Codex appearance manager"
+license = "MIT"
+
+[dependencies]
+anyhow = "1"
+base64 = "0.22"
+gpui = "0.2.2"
+gpui-component = { version = "0.5.1", features = ["tree-sitter-languages"] }
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"] }
+rfd = "0.15"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sysinfo = "0.33"
+sys-locale = "0.3"
+tungstenite = { version = "0.26", features = ["rustls-tls-native-roots"] }
+url = "2"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = [
+  "Win32_Foundation",
+  "Win32_System_Threading",
+  "Win32_UI_WindowsAndMessaging",
+] }
