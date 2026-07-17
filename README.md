@@ -1,58 +1,61 @@
 # CodeFace
 
-CodeFace 是一个面向 Codex 桌面端的原生跨平台外观管理器。它使用 Rust 和 GPUI 构建，通过仅绑定本机回环地址的 Chrome DevTools Protocol（CDP）把主题 CSS 与必要的界面集成代码注入 Codex。
+[English](README.md) | [简体中文](README.zh-CN.md)
 
-CodeFace 不修改官方 Codex App、Windows 安装包、`app.asar`、代码签名、登录状态或 API 配置。关闭主题后，官方界面可以安全恢复。
+CodeFace is a native, cross-platform appearance manager for the Codex desktop app. Built with Rust and GPUI, it injects theme CSS and the required UI integration code through the Chrome DevTools Protocol (CDP), bound exclusively to the local loopback interface.
 
-## 功能
+CodeFace does not modify the official Codex application, Windows installation, `app.asar`, code signatures, authentication state, or API configuration. Disabling a theme safely restores the official interface.
 
-- 创建、编辑、导入和切换主题
-- 直接编辑 `theme.json` 和具有 CSS 语法高亮的 `codeface.css`
-- 导入 PNG、JPEG 或 WebP 背景图
-- 未选择图片时自动生成纯白背景
-- 首页主题预览和四个原生快捷建议按钮
-- 从管理器关闭或重启 Codex
-- English 与简体中文界面
-- 默认跟随系统语言，也可以在 Settings / 设置中手动切换
-- macOS 与 Windows 共用一套 GPUI 界面和 Rust 核心
+## Features
 
-## 为什么使用 CDP
+- Create, edit, import, and switch themes
+- Edit `theme.json` and `codeface.css` directly, with CSS syntax highlighting
+- Import PNG, JPEG, or WebP background images
+- Generate a plain white background automatically when no image is selected
+- Preview themes on the home screen with four native shortcut suggestions
+- Close or restart Codex from the manager
+- English and Simplified Chinese interfaces
+- Follow the system language by default, or select a language in Settings
+- One shared GPUI interface and Rust core for macOS and Windows
 
-Codex 没有提供完整的第三方皮肤接口。CodeFace 使用 Codex 自带 Chromium 的调试协议，在运行时添加样式，而不是重新打包或修改官方应用。
+## Why CDP?
 
-安全约束：
+Codex does not provide a complete third-party theming API. CodeFace uses the debugging protocol built into Codex's Chromium runtime to add styles at runtime instead of repackaging or modifying the official app.
 
-- 调试端口只绑定 `127.0.0.1`
-- WebSocket 地址必须通过本机地址与端口校验
-- 主题图片最大 16 MiB，主题 CSS 最大 256 KiB
-- 自定义 CSS 不能加载外部 URL、字体或 `@import`
-- 装饰层不接管真实 Codex 控件的点击事件
+Security constraints:
 
-## 项目结构
+- The debugging port binds only to `127.0.0.1`
+- WebSocket addresses must pass local host and port validation
+- Theme images are limited to 16 MiB and theme CSS to 256 KiB
+- Custom CSS cannot load external URLs, fonts, or `@import` rules
+- Decorative layers do not intercept pointer events intended for real Codex controls
+
+## Project structure
 
 ```text
 gui/src/
-├── main.rs              GPUI 界面和交互
-├── i18n.rs              语言检测、设置持久化和翻译
-├── theme.rs             主题校验、存储和图片转换
-├── cdp.rs               Rust CDP 客户端、验证和注入守护进程
-├── paths.rs             数据目录与旧版本数据迁移
+├── main.rs              GPUI interface and interactions
+├── i18n.rs              Language detection, persistence, and translations
+├── theme.rs             Theme validation, storage, and image conversion
+├── cdp.rs               Rust CDP client, validation, and injector daemon
+├── paths.rs             CodeFace data directories
 └── platform/
-    ├── macos.rs         macOS 应用发现与生命周期
-    └── windows.rs       Windows 应用发现与生命周期
+    ├── macos.rs         macOS app discovery and lifecycle
+    └── windows.rs       Windows app discovery and lifecycle
 
 resources/
-├── assets/              内嵌基础 CSS 和渲染器 JavaScript
-└── theme-pack-template/ 可编辑主题模板
+├── assets/              Embedded base CSS and renderer JavaScript
+├── i18n/                Embedded JSON translation catalogs
+└── theme-pack-template/ Editable theme template
 
-xtask/                   Rust 打包工具
+xtask/                   Rust packaging tool
 ```
 
-程序运行不依赖 Shell、PowerShell、AppleScript 或外部 Node.js。`codeface-inject.js` 被编译进 Rust 二进制，因为 DOM 操作必须在 Codex 的 Chromium 渲染器中执行。
+The application has no runtime dependency on Shell, PowerShell, AppleScript, or external Node.js. `codeface-inject.js` is compiled into the Rust binary because DOM operations must execute inside the Codex Chromium renderer.
 
-## 开发
+## Development
 
-需要当前稳定版 Rust 工具链。
+The current stable Rust toolchain is required.
 
 ```bash
 cargo test --workspace --locked
@@ -61,21 +64,21 @@ cargo check --locked -p codeface --target x86_64-pc-windows-gnu
 cargo xtask package
 ```
 
-macOS 产物：
+macOS output:
 
 ```text
 dist/CodeFace.app
 ```
 
-Windows 产物：
+Windows output:
 
 ```text
 dist/windows/CodeFace.exe
 ```
 
-## 主题包
+## Theme packs
 
-一个主题目录包含：
+A theme directory contains:
 
 ```text
 theme.json
@@ -83,18 +86,16 @@ codeface.css
 background.png
 ```
 
-模板位于 [`resources/theme-pack-template`](resources/theme-pack-template)。主题列表中双击主题可以直接编辑源码。
+The template is available in [`resources/theme-pack-template`](resources/theme-pack-template). Double-click a theme in the theme list to edit its source directly.
 
-## 数据目录
+## Data directories
 
-- macOS：`~/Library/Application Support/CodeFace`
-- Windows：`%LOCALAPPDATA%\CodeFace`
+- macOS: `~/Library/Application Support/CodeFace`
+- Windows: `%LOCALAPPDATA%\CodeFace`
 
-首次启动新版时，程序会迁移旧数据目录中的主题和当前会话状态。
+## Command-line diagnostics
 
-## 命令行诊断
-
-这些命令由同一个 CodeFace Rust 可执行文件提供：
+The same CodeFace Rust executable provides these commands:
 
 ```text
 codeface --apply-active
@@ -103,13 +104,16 @@ codeface --restore
 codeface --print-data-root
 ```
 
-## English
+## Documentation
 
-CodeFace is a native cross-platform appearance manager for the Codex desktop app. It is built with Rust and GPUI and applies themes through a loopback-only CDP session without modifying the official application, `app.asar`, signatures, authentication, or API settings.
+Start with [`docs/README.md`](docs/README.md) for the user guide, theme-pack format, architecture and security model, development and build instructions, CI and release process, and troubleshooting.
 
-The UI supports English and Simplified Chinese. With no explicit preference, CodeFace follows the operating-system locale. Open Settings to select Follow system, English, or 简体中文.
+## Acknowledgements
 
-Themes contain `theme.json`, `codeface.css`, and `background.png`. Build and validate the project with the Cargo commands above.
+CodeFace was influenced and inspired by the following post and project:
+
+- [Randy's post on X](https://x.com/randyloop/status/2077813650564452850)
+- [Fei-Away/Codex-Dream-Skin](https://github.com/Fei-Away/Codex-Dream-Skin)
 
 ## License
 

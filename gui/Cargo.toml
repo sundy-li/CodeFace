@@ -1,6 +1,6 @@
 [package]
 name = "codeface"
-version = "1.0.0"
+version = "1.1.0"
 edition = "2024"
 description = "Native cross-platform Codex appearance manager"
 license = "MIT"
@@ -26,3 +26,6 @@ windows-sys = { version = "0.59", features = [
   "Win32_System_Threading",
   "Win32_UI_WindowsAndMessaging",
 ] }
+
+[build-dependencies]
+winresource = "0.1"

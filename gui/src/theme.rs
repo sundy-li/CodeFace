@@ -12,7 +12,9 @@ pub const DEFAULT_JSON: &str = include_str!("../../resources/theme-pack-template
 pub const DEFAULT_CSS: &str = include_str!("../../resources/theme-pack-template/codeface.css");
 
 fn atomic_write(path: &Path, data: &[u8]) -> Result<()> {
-    let parent = path.parent().context("目标文件没有父目录")?;
+    let parent = path
+        .parent()
+        .context("target file has no parent directory")?;
     fs::create_dir_all(parent)?;
     let temporary = parent.join(format!(
         ".{}.tmp-{}",
@@ -48,24 +50,25 @@ fn safe_id(value: &str) -> String {
 }
 
 fn validate_json(source: &str) -> Result<Value> {
-    let value: Value = serde_json::from_str(source).context("theme.json 不是有效 JSON")?;
-    let object = value.as_object().context("theme.json 顶层必须是对象")?;
+    let value: Value = serde_json::from_str(source).context("theme.json is not valid JSON")?;
+    let object = value
+        .as_object()
+        .context("the top level of theme.json must be an object")?;
     let name = object
         .get("name")
         .and_then(Value::as_str)
         .unwrap_or_default()
         .trim();
     if name.is_empty() {
-        bail!("theme.json 必须包含非空 name");
+        bail!("theme.json must contain a non-empty name");
     }
     Ok(value)
 }
 
 fn write_background(source: Option<&Path>, target: &Path) -> Result<()> {
     let image = match source {
-        Some(path) => {
-            image::open(path).with_context(|| format!("无法读取背景图 {}", path.display()))?
-        }
+        Some(path) => image::open(path)
+            .with_context(|| format!("failed to read background image {}", path.display()))?,
         None => DynamicImage::ImageRgba8(RgbaImage::from_pixel(1, 1, Rgba([255, 255, 255, 255]))),
     };
     image.save_with_format(target, image::ImageFormat::Png)?;
@@ -79,14 +82,14 @@ pub fn save(
     existing_id: Option<&str>,
 ) -> Result<String> {
     if css.len() > 256 * 1024 {
-        bail!("codeface.css 不能超过 256 KiB");
+        bail!("codeface.css cannot exceed 256 KiB");
     }
     let normalized_css = css.to_ascii_lowercase();
     if ["@import", "@font-face", "url("]
         .iter()
         .any(|token| normalized_css.contains(token))
     {
-        bail!("codeface.css 不允许加载外部字体、导入文件或 URL 资源");
+        bail!("codeface.css cannot load external fonts, imports, or URL resources");
     }
     let mut value = validate_json(json)?;
     let name = value["name"].as_str().unwrap();
@@ -109,8 +112,10 @@ pub fn save(
 }
 
 pub fn import_directory(source: &Path) -> Result<String> {
-    let json = fs::read_to_string(source.join("theme.json")).context("主题包缺少 theme.json")?;
-    let css = fs::read_to_string(source.join("codeface.css")).context("主题包缺少 codeface.css")?;
+    let json = fs::read_to_string(source.join("theme.json"))
+        .context("theme pack is missing theme.json")?;
+    let css = fs::read_to_string(source.join("codeface.css"))
+        .context("theme pack is missing codeface.css")?;
     let value = validate_json(&json)?;
     let image_name = value
         .get("image")
@@ -118,18 +123,18 @@ pub fn import_directory(source: &Path) -> Result<String> {
         .unwrap_or("background.png");
     let image = source.join(image_name);
     if !image.is_file() {
-        bail!("主题包背景图不存在: {image_name}");
+        bail!("theme pack background image does not exist: {image_name}");
     }
     save(&json, &css, Some(&image), None)
 }
 
 pub fn activate(id: &str) -> Result<PathBuf> {
     if id.contains('/') || id.contains('\\') || id == "." || id == ".." {
-        bail!("非法主题 ID");
+        bail!("invalid theme ID");
     }
     let source = paths::themes_root()?.join(id);
     if !source.join("theme.json").is_file() {
-        bail!("主题不存在: {id}");
+        bail!("theme does not exist: {id}");
     }
     let target = paths::active_theme_root()?;
     for entry in fs::read_dir(&target)? {
@@ -140,7 +145,7 @@ pub fn activate(id: &str) -> Result<PathBuf> {
     }
     for name in ["theme.json", "codeface.css", "background.png"] {
         fs::copy(source.join(name), target.join(name))
-            .with_context(|| format!("复制主题文件 {name} 失败"))?;
+            .with_context(|| format!("failed to copy theme file {name}"))?;
     }
     Ok(target)
 }
@@ -158,15 +163,141 @@ pub fn read_source(id: &str) -> Result<(String, String, PathBuf)> {
     Ok((json, fs::read_to_string(root.join("codeface.css"))?, image))
 }
 
-pub fn choose_image(title: &str, filter_name: &str) -> Option<PathBuf> {
-    rfd::FileDialog::new()
-        .set_title(title)
-        .add_filter(filter_name, &["png", "jpg", "jpeg", "webp"])
-        .pick_file()
+fn delete_from_root(root: &Path, id: &str) -> Result<()> {
+    if id == "__codeface-system-theme__" {
+        bail!("The system theme cannot be deleted");
+    }
+    if id.contains('/') || id.contains('\\') || id == "." || id == ".." {
+        bail!("Invalid theme ID");
+    }
+    let theme_root = root.join(id);
+    if !theme_root.is_dir() {
+        bail!("Theme does not exist: {id}");
+    }
+    fs::remove_dir_all(theme_root)?;
+    Ok(())
 }
 
-pub fn choose_pack(title: &str) -> Option<PathBuf> {
-    rfd::FileDialog::new().set_title(title).pick_folder()
+pub fn delete(id: &str) -> Result<()> {
+    delete_from_root(&paths::themes_root()?, id)
+}
+
+pub fn context_prompt(id: &str, chinese: bool) -> Result<String> {
+    let root = paths::themes_root()?.join(id);
+    context_prompt_for_root(&root, chinese)
+}
+
+fn context_prompt_for_root(root: &Path, chinese: bool) -> Result<String> {
+    let json = fs::read_to_string(root.join("theme.json"))?;
+    fs::metadata(root.join("codeface.css"))?;
+    let value: Value = serde_json::from_str(&json)?;
+    let image_name = value
+        .get("image")
+        .and_then(Value::as_str)
+        .unwrap_or("background.png");
+    let image_path = root.join(image_name);
+    let metadata = fs::metadata(&image_path)?;
+    let dimensions = image::image_dimensions(&image_path).ok();
+    let dimension_text = dimensions
+        .map(|(width, height)| format!("{width} × {height}"))
+        .unwrap_or_else(|| "unknown".into());
+    let mut files = fs::read_dir(root)?
+        .filter_map(|entry| entry.ok())
+        .map(|entry| entry.file_name().to_string_lossy().into_owned())
+        .collect::<Vec<_>>();
+    files.sort();
+    let files = files
+        .into_iter()
+        .map(|name| format!("- {name}"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let prompt = if chinese {
+        format!(
+            r#"请帮我完整优化一个 CodeFace 主题。你可以直接读取和编辑下面的本地主题目录。请先检查现有主题和背景图，再进行有依据的设计调整；不要只给建议，请直接完成修改和验证。
+
+主题目录：{root}
+
+目录文件：
+{files}
+
+背景图片：
+- 路径：{image_path}
+- 尺寸：{dimension_text}
+- 文件大小：{image_bytes} bytes
+
+设计范围：
+1. 不要只优化首页。必须同时检查首页、左侧导航栏、聊天/任务页面、消息内容区、顶部栏和输入框。
+2. 从背景图片中提取协调的背景色、面板色、强调色、文字色和边框色，让所有页面属于同一视觉系统。
+3. 首页可以使用背景图片；聊天和任务页面应优先使用与图片协调的纯色或低对比渐变，避免重复铺设人物或复杂图片影响阅读。
+4. 保持清晰的信息层级、正文可读性、足够的颜色对比度，以及 hover、pressed、selected、focus-visible 和 reduced-motion 状态。
+5. 保留所有真实 Codex 控件和交互。装饰层必须不可交互，不得遮挡、替换或隐藏原生功能。
+
+实现要求：
+1. 直接编辑主题目录中的 `theme.json` 和 `codeface.css`；仅在确有必要时替换背景图片。
+2. 不要修改 CodeFace 源码或官方 Codex 应用。
+3. 保持 JSON 的 `image` 字段与实际图片文件一致。
+4. CSS 中不得使用 `@import`、`@font-face` 或任何外部 `url(...)` 资源。
+5. CSS 必须保持在 256 KiB 以内，图片必须保持在 16 MiB 以内。
+6. 修改完成后验证 JSON、CSS、图片引用和文件大小，并确认主题包仍可导入。
+7. 最后总结修改过的文件、主要设计决策和验证结果。
+"#,
+            root = root.display(),
+            image_path = image_path.display(),
+            image_bytes = metadata.len()
+        )
+    } else {
+        format!(
+            r#"Help me fully refine a CodeFace theme. You can read and edit the local theme directory below. Inspect the existing theme and background image before making evidence-based design changes. Do not stop at recommendations: edit the files and verify the result.
+
+Theme directory: {root}
+
+Directory files:
+{files}
+
+Background image:
+- Path: {image_path}
+- Dimensions: {dimension_text}
+- File size: {image_bytes} bytes
+
+Design scope:
+1. Do not optimize only the home screen. Review the home screen, left navigation, chat/task pages, message content, top bar, and composer.
+2. Derive coordinated canvas, panel, accent, text, and border colors from the background image so every route belongs to one visual system.
+3. The home screen may use the image. Prefer image-related solid colors or low-contrast gradients on chat and task pages; do not repeat a portrait or detailed image where it would impair reading.
+4. Preserve clear hierarchy, readable text, sufficient contrast, and distinct hover, pressed, selected, focus-visible, and reduced-motion states.
+5. Preserve every real Codex control and interaction. Decorative layers must be non-interactive and must never obscure, replace, or hide native functionality.
+
+Implementation requirements:
+1. Edit `theme.json` and `codeface.css` directly in the theme directory; replace the background image only when necessary.
+2. Do not modify the CodeFace source code or the official Codex application.
+3. Keep the JSON `image` field consistent with the actual image file.
+4. Do not use `@import`, `@font-face`, or external `url(...)` resources in CSS.
+5. Keep CSS below 256 KiB and the background image below 16 MiB.
+6. Validate JSON, CSS, the image reference, and file-size limits, then confirm that the package remains importable.
+7. Finish with a concise summary of changed files, key design decisions, and verification results.
+"#,
+            root = root.display(),
+            image_path = image_path.display(),
+            image_bytes = metadata.len()
+        )
+    };
+    Ok(prompt)
+}
+
+pub async fn choose_image(title: String, filter_name: String) -> Option<PathBuf> {
+    rfd::AsyncFileDialog::new()
+        .set_title(title)
+        .add_filter(&filter_name, &["png", "jpg", "jpeg", "webp"])
+        .pick_file()
+        .await
+        .map(|file| file.path().to_path_buf())
+}
+
+pub async fn choose_pack(title: String) -> Option<PathBuf> {
+    rfd::AsyncFileDialog::new()
+        .set_title(title)
+        .pick_folder()
+        .await
+        .map(|folder| folder.path().to_path_buf())
 }
 
 #[cfg(test)]
@@ -175,8 +306,8 @@ mod tests {
 
     #[test]
     fn validates_theme_and_normalizes_id() {
-        let value = validate_json(r#"{"name":"中文主题"}"#).expect("valid theme");
-        assert_eq!(value["name"], "中文主题");
+        let value = validate_json(r#"{"name":"Sample Theme"}"#).expect("valid theme");
+        assert_eq!(value["name"], "Sample Theme");
         assert_eq!(safe_id("CodeFace 01"), "codeface-01");
         assert!(validate_json("{}").is_err());
     }
@@ -191,5 +322,61 @@ mod tests {
         assert_eq!(image.dimensions(), (1, 1));
         assert_eq!(image.get_pixel(0, 0).0, [255, 255, 255, 255]);
         fs::remove_file(path).expect("remove background");
+    }
+
+    #[test]
+    fn context_prompt_contains_complete_editable_context() {
+        let root = std::env::temp_dir().join(format!("codeface-prompt-{}", std::process::id()));
+        fs::create_dir_all(&root).expect("create theme");
+        fs::write(
+            root.join("theme.json"),
+            r#"{"name":"Prompt Test","image":"background.png"}"#,
+        )
+        .expect("write json");
+        fs::write(root.join("codeface.css"), "html.codeface { color: red; }").expect("write css");
+        write_background(None, &root.join("background.png")).expect("write image");
+        let prompt = context_prompt_for_root(&root, false).expect("build prompt");
+        assert!(prompt.contains(&root.display().to_string()));
+        assert!(prompt.contains("- theme.json"));
+        assert!(prompt.contains("- codeface.css"));
+        assert!(prompt.contains("1 × 1"));
+        assert!(prompt.contains("left navigation"));
+        assert!(prompt.contains("chat/task pages"));
+        assert!(prompt.contains("focus-visible"));
+        assert!(prompt.contains("256 KiB"));
+
+        let chinese_prompt = context_prompt_for_root(&root, true).expect("build Chinese prompt");
+        assert!(chinese_prompt.contains("左侧导航栏"));
+        assert!(chinese_prompt.contains("聊天/任务页面"));
+        assert!(chinese_prompt.contains("不要修改 CodeFace 源码"));
+        fs::remove_dir_all(root).expect("remove theme");
+    }
+
+    #[test]
+    fn system_theme_cannot_be_deleted() {
+        let error =
+            delete("__codeface-system-theme__").expect_err("system theme must be protected");
+        assert!(error.to_string().contains("cannot be deleted"));
+    }
+
+    #[test]
+    fn delete_removes_theme_directory() {
+        let root = std::env::temp_dir().join(format!(
+            "codeface-delete-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("clock")
+                .as_nanos()
+        ));
+        let theme_root = root.join("deletable-theme");
+        fs::create_dir_all(&theme_root).expect("create theme directory");
+        fs::write(theme_root.join("theme.json"), r#"{"name":"Delete Me"}"#)
+            .expect("write theme file");
+
+        delete_from_root(&root, "deletable-theme").expect("delete theme");
+
+        assert!(!theme_root.exists());
+        fs::remove_dir_all(root).expect("remove test root");
     }
 }

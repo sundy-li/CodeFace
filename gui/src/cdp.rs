@@ -4,9 +4,11 @@ use base64::{Engine as _, engine::general_purpose::STANDARD};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::{
+    collections::hash_map::DefaultHasher,
     fs,
+    hash::{Hash, Hasher},
     net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener},
-    path::Path,
+    path::{Path, PathBuf},
     process::{Command, Stdio},
     thread,
     time::{Duration, Instant},
@@ -17,6 +19,15 @@ use url::Url;
 const CSS: &str = include_str!("../../resources/assets/codeface.css");
 const INJECTOR: &str = include_str!("../../resources/assets/codeface-inject.js");
 const DEFAULT_PORT: u16 = 9341;
+const THEME_POLL_INTERVAL: Duration = Duration::from_millis(100);
+const THEME_RELOAD_DEBOUNCE: Duration = Duration::from_millis(300);
+const VERIFY_INTERVAL: Duration = Duration::from_secs(2);
+
+#[derive(Debug)]
+struct ThemeSnapshot {
+    fingerprint: u64,
+    image_name: String,
+}
 
 #[derive(Clone, Debug, Deserialize)]
 struct Target {
@@ -33,6 +44,7 @@ pub struct RuntimeState {
     pub platform: String,
     pub port: u16,
     pub injector_pid: u32,
+    pub injection_enabled: bool,
     pub codex_executable: String,
     pub theme_name: String,
     pub version: String,
@@ -53,7 +65,10 @@ fn targets(port: u16) -> Result<Vec<Target>> {
             || url.host_str() != Some("127.0.0.1") && url.host_str() != Some("localhost")
             || url.port() != Some(port)
         {
-            bail!("拒绝非本机 CDP WebSocket: {}", target.websocket_url);
+            bail!(
+                "refusing non-loopback CDP WebSocket: {}",
+                target.websocket_url
+            );
         }
     }
     Ok(values)
@@ -69,7 +84,7 @@ fn select_port(preferred: u16) -> Result<u16> {
             return Ok(port);
         }
     }
-    bail!("未找到可用的本机 CDP 端口")
+    bail!("no available loopback CDP port found")
 }
 
 fn art_data_url(theme_root: &Path, theme: &Value) -> Result<String> {
@@ -77,9 +92,10 @@ fn art_data_url(theme_root: &Path, theme: &Value) -> Result<String> {
         .get("image")
         .and_then(Value::as_str)
         .unwrap_or("background.png");
-    let bytes = fs::read(theme_root.join(image)).context("读取主题背景图失败")?;
+    let bytes =
+        fs::read(theme_root.join(image)).context("failed to read theme background image")?;
     if bytes.len() > 16 * 1024 * 1024 {
-        bail!("背景图不能超过 16 MiB");
+        bail!("background image cannot exceed 16 MiB");
     }
     Ok(format!("data:image/png;base64,{}", STANDARD.encode(bytes)))
 }
@@ -87,9 +103,24 @@ fn art_data_url(theme_root: &Path, theme: &Value) -> Result<String> {
 fn payload(theme_root: &Path) -> Result<String> {
     let theme_text = fs::read_to_string(theme_root.join("theme.json"))?;
     let theme: Value = serde_json::from_str(&theme_text)?;
-    let custom_css = fs::read_to_string(theme_root.join("codeface.css")).unwrap_or_default();
+    let name = theme
+        .get("name")
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .trim();
+    if name.is_empty() {
+        bail!("theme.json must contain a non-empty name");
+    }
+    let custom_css = fs::read_to_string(theme_root.join("codeface.css"))?;
     if custom_css.len() > 256 * 1024 {
-        bail!("codeface.css 不能超过 256 KiB");
+        bail!("codeface.css cannot exceed 256 KiB");
+    }
+    let normalized_css = custom_css.to_ascii_lowercase();
+    if ["@import", "@font-face", "url("]
+        .iter()
+        .any(|token| normalized_css.contains(token))
+    {
+        bail!("codeface.css cannot load external fonts, imports, or URL resources");
     }
     Ok(INJECTOR
         .replace(
@@ -105,6 +136,85 @@ fn payload(theme_root: &Path) -> Result<String> {
             &serde_json::to_string(&art_data_url(theme_root, &theme)?)?,
         )
         .replace("__CODEFACE_THEME_JSON__", &theme_text))
+}
+
+fn theme_snapshot(theme_root: &Path) -> Result<ThemeSnapshot> {
+    let theme_text = fs::read_to_string(theme_root.join("theme.json"))?;
+    let theme: Value = serde_json::from_str(&theme_text)?;
+    let image_name = theme
+        .get("image")
+        .and_then(Value::as_str)
+        .unwrap_or("background.png");
+    let image_path = Path::new(image_name);
+    if image_path.file_name().and_then(|name| name.to_str()) != Some(image_name) {
+        bail!("theme image must be a file in the theme directory");
+    }
+    let css = fs::read_to_string(theme_root.join("codeface.css"))?;
+    let image = fs::read(theme_root.join(image_name))?;
+    if image.len() > 16 * 1024 * 1024 {
+        bail!("background image cannot exceed 16 MiB");
+    }
+    image::load_from_memory(&image).context("failed to decode theme background image")?;
+    payload(theme_root)?;
+
+    let mut hasher = DefaultHasher::new();
+    theme_text.hash(&mut hasher);
+    css.hash(&mut hasher);
+    image.hash(&mut hasher);
+    Ok(ThemeSnapshot {
+        fingerprint: hasher.finish(),
+        image_name: image_name.to_owned(),
+    })
+}
+
+fn selected_theme_root(active_root: &Path) -> Result<PathBuf> {
+    let theme_text = fs::read_to_string(active_root.join("theme.json"))?;
+    let theme: Value = serde_json::from_str(&theme_text)?;
+    let id = theme.get("id").and_then(Value::as_str).unwrap_or_default();
+    if id.is_empty() || id.contains('/') || id.contains('\\') || id == "." || id == ".." {
+        return Ok(active_root.to_owned());
+    }
+    let source = paths::themes_root()?.join(id);
+    if source.join("theme.json").is_file() && source.join("codeface.css").is_file() {
+        Ok(source)
+    } else {
+        Ok(active_root.to_owned())
+    }
+}
+
+fn atomic_copy(source: &Path, target: &Path) -> Result<()> {
+    let temporary = target.with_extension(format!("reload-{}.tmp", std::process::id()));
+    fs::copy(source, &temporary)?;
+    fs::rename(temporary, target)?;
+    Ok(())
+}
+
+fn sync_active_theme(source: &Path, active: &Path, snapshot: &ThemeSnapshot) -> Result<()> {
+    if source == active {
+        return Ok(());
+    }
+    fs::create_dir_all(active)?;
+    atomic_copy(
+        &source.join(&snapshot.image_name),
+        &active.join(&snapshot.image_name),
+    )?;
+    atomic_copy(&source.join("codeface.css"), &active.join("codeface.css"))?;
+    // Commit the manifest last so readers never observe references to files
+    // that have not finished syncing yet.
+    atomic_copy(&source.join("theme.json"), &active.join("theme.json"))?;
+    Ok(())
+}
+
+fn write_daemon_error(error: &anyhow::Error, previous: &mut String) {
+    let message = format!("{error:#}");
+    if *previous != message {
+        fs::write(
+            paths::log_path().unwrap_or_else(|_| PathBuf::from("injector.log")),
+            format!("{message}\n"),
+        )
+        .ok();
+        *previous = message;
+    }
 }
 
 fn evaluate(target: &Target, expression: &str) -> Result<Value> {
@@ -123,7 +233,7 @@ fn evaluate(target: &Target, expression: &str) -> Result<Value> {
             let response: Value = serde_json::from_str(&text)?;
             if response.get("id") == Some(&Value::from(1)) {
                 if let Some(error) = response.get("error") {
-                    bail!("CDP 执行失败: {error}");
+                    bail!("CDP execution failed: {error}");
                 }
                 return Ok(response
                     .pointer("/result/result/value")
@@ -132,7 +242,7 @@ fn evaluate(target: &Target, expression: &str) -> Result<Value> {
             }
         }
     }
-    bail!("CDP 连接提前关闭")
+    bail!("CDP connection closed prematurely")
 }
 
 pub fn inject_once(port: u16, theme_root: &Path) -> Result<usize> {
@@ -142,11 +252,12 @@ pub fn inject_once(port: u16, theme_root: &Path) -> Result<usize> {
         .into_iter()
         .filter(|target| target.url.starts_with("app://") || target.title.contains("Codex"))
     {
-        evaluate(&target, &expression).with_context(|| format!("注入目标 {} 失败", target.id))?;
+        evaluate(&target, &expression)
+            .with_context(|| format!("failed to inject target {}", target.id))?;
         count += 1;
     }
     if count == 0 {
-        bail!("未找到 Codex 渲染目标");
+        bail!("no Codex renderer target found");
     }
     Ok(count)
 }
@@ -160,7 +271,7 @@ pub fn verify(port: u16) -> Result<()> {
     if passed {
         Ok(())
     } else {
-        bail!("实时页面未检测到 CodeFace 标记")
+        bail!("CodeFace marker not detected on the live page")
     }
 }
 
@@ -176,13 +287,55 @@ fn write_state(state: &RuntimeState) -> Result<()> {
 }
 
 pub fn daemon(port: u16, theme_root: &Path) -> Result<()> {
+    let mut applied_fingerprint = theme_snapshot(theme_root)
+        .ok()
+        .map(|snapshot| snapshot.fingerprint);
+    let mut pending_change: Option<(u64, Instant)> = None;
+    let mut next_verify = Instant::now();
+    let mut last_error = String::new();
+
     loop {
-        if verify(port).is_err()
-            && let Err(error) = inject_once(port, theme_root)
-        {
-            fs::write(paths::log_path()?, format!("{error:#}\n")).ok();
+        let source_root = selected_theme_root(theme_root).unwrap_or_else(|_| theme_root.to_owned());
+        match theme_snapshot(&source_root) {
+            Ok(snapshot) if Some(snapshot.fingerprint) != applied_fingerprint => {
+                let now = Instant::now();
+                let stable_since = match pending_change {
+                    Some((fingerprint, since)) if fingerprint == snapshot.fingerprint => since,
+                    _ => {
+                        pending_change = Some((snapshot.fingerprint, now));
+                        now
+                    }
+                };
+                if now.duration_since(stable_since) >= THEME_RELOAD_DEBOUNCE {
+                    let reload = sync_active_theme(&source_root, theme_root, &snapshot)
+                        .and_then(|()| inject_once(port, theme_root).map(|_| ()));
+                    match reload {
+                        Ok(()) => {
+                            applied_fingerprint = Some(snapshot.fingerprint);
+                            pending_change = None;
+                            last_error.clear();
+                            fs::remove_file(paths::log_path()?).ok();
+                        }
+                        Err(error) => {
+                            write_daemon_error(&error, &mut last_error);
+                            pending_change = Some((snapshot.fingerprint, now));
+                        }
+                    }
+                }
+            }
+            Ok(_) => pending_change = None,
+            Err(error) => write_daemon_error(&error, &mut last_error),
         }
-        thread::sleep(Duration::from_secs(2));
+
+        if Instant::now() >= next_verify {
+            if verify(port).is_err()
+                && let Err(error) = inject_once(port, theme_root)
+            {
+                write_daemon_error(&error, &mut last_error);
+            }
+            next_verify = Instant::now() + VERIFY_INTERVAL;
+        }
+        thread::sleep(THEME_POLL_INTERVAL);
     }
 }
 
@@ -199,7 +352,7 @@ pub fn apply_active(theme_name: String, restart_existing: bool) -> Result<Runtim
     if !endpoint_ready(port) {
         if backend.is_running(&install) {
             if !restart_existing {
-                bail!("Codex 正在运行但没有 CDP 会话；请使用“重启并应用”");
+                bail!("Codex is running without a CDP session; use Restart and Apply");
             }
             backend.close_codex(&install)?;
         }
@@ -210,7 +363,7 @@ pub fn apply_active(theme_name: String, restart_existing: bool) -> Result<Runtim
             thread::sleep(Duration::from_millis(350));
         }
         if !endpoint_ready(port) {
-            bail!("Codex 未在 45 秒内开放本机 CDP 端口");
+            bail!("Codex did not open a loopback CDP port within 45 seconds");
         }
     }
     inject_once(port, &paths::active_theme_root()?)?;
@@ -227,10 +380,11 @@ pub fn apply_active(theme_name: String, restart_existing: bool) -> Result<Runtim
         .stderr(Stdio::null())
         .spawn()?;
     let state = RuntimeState {
-        schema_version: 1,
+        schema_version: 2,
         platform: std::env::consts::OS.into(),
         port,
         injector_pid: child.id(),
+        injection_enabled: true,
         codex_executable: install.executable.to_string_lossy().into_owned(),
         theme_name,
         version: paths::VERSION.into(),
@@ -248,7 +402,24 @@ pub fn restart_codex() -> Result<()> {
     let backend = platform::backend();
     let install = backend.discover_codex()?;
     backend.close_codex(&install)?;
-    backend.launch_codex(&install, None)
+    let previous = fs::read_to_string(paths::state_path()?)
+        .ok()
+        .and_then(|text| serde_json::from_str::<RuntimeState>(&text).ok());
+    let port = select_port(
+        previous
+            .as_ref()
+            .map(|state| state.port)
+            .unwrap_or(DEFAULT_PORT),
+    )?;
+    backend.launch_codex(&install, Some(port))?;
+    let deadline = Instant::now() + Duration::from_secs(45);
+    while Instant::now() < deadline && !endpoint_ready(port) {
+        thread::sleep(Duration::from_millis(350));
+    }
+    if !endpoint_ready(port) {
+        bail!("Codex did not open a loopback CDP port within 45 seconds");
+    }
+    Ok(())
 }
 
 fn stop_process(pid: u32) {
@@ -258,21 +429,100 @@ fn stop_process(pid: u32) {
     }
 }
 
-pub fn remove_live_skin() -> Result<()> {
-    if let Ok(text) = fs::read_to_string(paths::state_path()?)
-        && let Ok(state) = serde_json::from_str::<RuntimeState>(&text)
+fn remove_skin_from_port(port: u16) -> Result<()> {
+    let expression = r#"(() => {
+      window.__CODEFACE_STATE__?.cleanup?.();
+      document.documentElement.classList.remove('codeface');
+      document.getElementById('codeface-style')?.remove();
+      for (const node of document.querySelectorAll('[data-codeface]')) node.remove();
+      return true;
+    })()"#;
+    for target in targets(port)?
+        .iter()
+        .filter(|target| target.url.starts_with("app://") || target.title.contains("Codex"))
     {
-        let expression = "window.__CODEFACE_STATE__?.cleanup?.() ?? true";
-        if endpoint_ready(state.port) {
-            for target in targets(state.port)?
-                .iter()
-                .filter(|target| target.url.starts_with("app://") || target.title.contains("Codex"))
-            {
-                let _ = evaluate(target, expression);
-            }
+        evaluate(target, expression)?;
+    }
+    Ok(())
+}
+
+pub fn remove_live_skin() -> Result<()> {
+    let mut ports = vec![DEFAULT_PORT];
+    let previous = fs::read_to_string(paths::state_path()?)
+        .ok()
+        .and_then(|text| serde_json::from_str::<RuntimeState>(&text).ok());
+    if let Some(state) = &previous {
+        if !ports.contains(&state.port) {
+            ports.push(state.port);
         }
         stop_process(state.injector_pid);
+        thread::sleep(Duration::from_millis(150));
     }
-    let _ = fs::remove_file(paths::state_path()?);
+    for port in ports {
+        if endpoint_ready(port) {
+            remove_skin_from_port(port)?;
+        }
+    }
+    if let Some(mut state) = previous {
+        state.schema_version = 2;
+        state.injector_pid = 0;
+        state.injection_enabled = false;
+        write_state(&state)?;
+    } else {
+        let _ = fs::remove_file(paths::state_path()?);
+    }
     Ok(())
+}
+
+pub fn restore_native() -> Result<()> {
+    remove_live_skin()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use image::{ImageFormat, Rgb, RgbImage};
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn test_theme_root(label: &str) -> PathBuf {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!("codeface-{label}-{nonce}"));
+        fs::create_dir_all(&root).expect("create theme root");
+        fs::write(
+            root.join("theme.json"),
+            r#"{"name":"Watch Test","image":"background.png"}"#,
+        )
+        .expect("write theme json");
+        fs::write(root.join("codeface.css"), "html.codeface { color: red; }").expect("write css");
+        RgbImage::from_pixel(1, 1, Rgb([255, 255, 255]))
+            .save_with_format(root.join("background.png"), ImageFormat::Png)
+            .expect("write image");
+        root
+    }
+
+    #[test]
+    fn theme_snapshot_changes_when_css_changes() {
+        let root = test_theme_root("watch-change");
+        let before = theme_snapshot(&root).expect("initial snapshot");
+        fs::write(root.join("codeface.css"), "html.codeface { color: blue; }").expect("update css");
+        let after = theme_snapshot(&root).expect("updated snapshot");
+        assert_ne!(before.fingerprint, after.fingerprint);
+        fs::remove_dir_all(root).expect("remove theme root");
+    }
+
+    #[test]
+    fn theme_snapshot_rejects_external_css_resources() {
+        let root = test_theme_root("watch-invalid");
+        fs::write(
+            root.join("codeface.css"),
+            "@import 'https://example.invalid/theme.css';",
+        )
+        .expect("update css");
+        let error = theme_snapshot(&root).expect_err("forbidden CSS must fail");
+        assert!(error.to_string().contains("cannot load external"));
+        fs::remove_dir_all(root).expect("remove theme root");
+    }
 }

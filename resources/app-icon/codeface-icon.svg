@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">CodeFace application icon</title>
+  <desc id="desc">A luminous C embracing a faceted F on a dark rounded canvas.</desc>
+  <defs>
+    <linearGradient id="bg" x1="142" y1="90" x2="854" y2="934" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#18243D"/>
+      <stop offset="0.55" stop-color="#10172B"/>
+      <stop offset="1" stop-color="#090D1A"/>
+    </linearGradient>
+    <linearGradient id="brand" x1="238" y1="221" x2="800" y2="813" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#70F3DB"/>
+      <stop offset="0.48" stop-color="#61C9FF"/>
+      <stop offset="1" stop-color="#A57BFF"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="133" y1="115" x2="866" y2="899" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#A9FFF0" stop-opacity=".56"/>
+      <stop offset=".5" stop-color="#6FCBFF" stop-opacity=".18"/>
+      <stop offset="1" stop-color="#B395FF" stop-opacity=".34"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="translate(492 472) rotate(90) scale(390)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#59DFFF" stop-opacity=".17"/>
+      <stop offset="1" stop-color="#59DFFF" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="100" y="112" width="824" height="824" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="26" stdDeviation="26" flood-color="#000512" flood-opacity=".52"/>
+    </filter>
+    <filter id="soft-glow" x="120" y="120" width="784" height="784" filterUnits="userSpaceOnUse">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+    <clipPath id="tile"><rect x="28" y="28" width="968" height="968" rx="222"/></clipPath>
+  </defs>
+
+  <g clip-path="url(#tile)">
+    <rect x="28" y="28" width="968" height="968" rx="222" fill="url(#bg)"/>
+    <circle cx="492" cy="472" r="390" fill="url(#glow)"/>
+    <path d="M184 28h656L512 996H28V184C28 98 98 28 184 28Z" fill="#FFFFFF" opacity=".025"/>
+    <rect x="45" y="45" width="934" height="934" rx="205" fill="none" stroke="url(#edge)" stroke-width="4"/>
+  </g>
+
+  <g opacity=".26" filter="url(#soft-glow)" fill="none" stroke="url(#brand)" stroke-width="58" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M705 285C650 238 579 210 502 210C334 210 198 346 198 514S334 818 502 818C598 818 684 774 740 704"/>
+    <path d="M418 690V354C418 328 439 307 465 307H725"/>
+    <path d="M441 492H664"/>
+  </g>
+
+  <g filter="url(#shadow)" fill="none" stroke="url(#brand)" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M705 285C650 238 579 210 502 210C334 210 198 346 198 514S334 818 502 818C598 818 684 774 740 704" stroke-width="82"/>
+    <path d="M418 690V354C418 328 439 307 465 307H725" stroke-width="82"/>
+    <path d="M441 492H664" stroke-width="82"/>
+  </g>
+
+  <g fill="#E9FFFF">
+    <circle cx="771" cy="237" r="14" opacity=".95"/>
+    <path d="M803 181l8 22 22 8-22 8-8 22-8-22-22-8 22-8 8-22Z" opacity=".9"/>
+  </g>
+</svg>

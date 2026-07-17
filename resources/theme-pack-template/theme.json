@@ -2,12 +2,12 @@
   "schemaVersion": 1,
   "id": "my-editable-theme",
   "name": "我的可编辑主题",
-  "brandSubtitle": "CODEFACE CUSTOM THEME",
-  "tagline": "用自己的 CSS 定制 Codex 首页",
+  "brandSubtitle": "A WARM SPACE TO CREATE",
+  "tagline": "让灵感安静生长，把每一次创造都变得温柔",
   "projectPrefix": "选择项目 · ",
   "projectLabel": "◉  选择项目",
-  "statusText": "CODEFACE ONLINE",
-  "quote": "MAKE SOMETHING WONDERFUL",
+  "statusText": "READY TO CREATE",
+  "quote": "CREATE WITH WONDER",
   "suggestions": [
     { "title": "构建", "description": "编写代码与应用" },
     { "title": "分析", "description": "理解代码与数据" },
@@ -18,19 +18,19 @@
   "layout": {
     "heroFit": "none",
     "heroPosition": "center center",
-    "backgroundPosition": "center center",
-    "taskOverlay": 0.5
+    "backgroundPosition": "center 35%",
+    "taskOverlay": 0.42
   },
   "colors": {
-    "background": "#FFFFFF",
-    "panel": "#FFFFFF",
-    "panelAlt": "#F7F7F7",
-    "accent": "#8A9A5B",
-    "accentAlt": "#A8B879",
-    "secondary": "#C7B98B",
-    "highlight": "#66713F",
-    "text": "#343829",
-    "muted": "#747866",
-    "line": "#D5D3B8"
+    "background": "#F7F1E8",
+    "panel": "#FFFDF9",
+    "panelAlt": "#F3E8DC",
+    "accent": "#A85865",
+    "accentAlt": "#E4B8AE",
+    "secondary": "#B58A5C",
+    "highlight": "#743C47",
+    "text": "#352A28",
+    "muted": "#776864",
+    "line": "#D9C5B8"
   }
 }

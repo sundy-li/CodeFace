@@ -21,3 +21,20 @@ Security invariants:
 - Theme CSS and images have explicit size limits.
 - Theme state uses atomic replacement.
 - The official Codex bundle, package, signature, `app.asar`, authentication, and API configuration are never modified.
+
+## Runtime sequence
+
+1. `ThemeStore` validates and atomically activates a theme.
+2. `PlatformBackend` discovers the official Codex executable.
+3. `CdpEngine` reuses a verified loopback endpoint or launches Codex with `--remote-debugging-address=127.0.0.1`.
+4. Rust reads the embedded base CSS and renderer integration, appends theme CSS, and sends the payload over CDP WebSocket.
+5. The same CodeFace executable starts in `--injector-daemon` mode and checks that the marker survives navigation.
+6. If the marker disappears, the daemon reinjects the payload. It does not resend the full payload while the marker remains valid.
+
+## Platform boundary
+
+`PlatformBackend` contains only Codex discovery and lifecycle operations. Theme storage, image conversion, CDP, UI, settings, i18n, and packaging contracts are shared.
+
+## Language selection
+
+`i18n.rs` stores `system`, `english`, or `simplified-chinese`. `system` resolves through the native system locale at runtime. Rendering reads the effective locale each frame, so manual changes apply immediately.

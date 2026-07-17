@@ -63,7 +63,7 @@ impl PlatformBackend for WindowsBackend {
                 return Ok(CodexInstall { executable });
             }
         }
-        bail!("未找到 Codex.exe 或 ChatGPT.exe")
+        bail!("could not find Codex.exe or ChatGPT.exe")
     }
 
     fn is_running(&self, install: &CodexInstall) -> bool {
@@ -85,7 +85,7 @@ impl PlatformBackend for WindowsBackend {
                 return Ok(());
             }
         }
-        bail!("Codex 未在 12 秒内退出")
+        bail!("Codex did not exit within 12 seconds")
     }
 
     fn launch_codex(&self, install: &CodexInstall, cdp_port: Option<u16>) -> Result<()> {
@@ -95,7 +95,7 @@ impl PlatformBackend for WindowsBackend {
                 .arg("--remote-debugging-address=127.0.0.1")
                 .arg(format!("--remote-debugging-port={port}"));
         }
-        command.spawn().context("启动 Codex 失败")?;
+        command.spawn().context("failed to launch Codex")?;
         Ok(())
     }
 }

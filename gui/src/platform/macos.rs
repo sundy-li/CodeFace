@@ -51,7 +51,7 @@ impl PlatformBackend for MacOsBackend {
                 return Ok(CodexInstall { executable });
             }
         }
-        bail!("未找到 /Applications/Codex.app 或 ChatGPT.app")
+        bail!("could not find /Applications/Codex.app or ChatGPT.app")
     }
 
     fn is_running(&self, install: &CodexInstall) -> bool {
@@ -76,7 +76,7 @@ impl PlatformBackend for MacOsBackend {
                 return Ok(());
             }
         }
-        bail!("Codex 未在 12 秒内退出，请保存输入后手动关闭")
+        bail!("Codex did not exit within 12 seconds; save your input and close it manually")
     }
 
     fn launch_codex(&self, install: &CodexInstall, cdp_port: Option<u16>) -> Result<()> {
@@ -86,7 +86,7 @@ impl PlatformBackend for MacOsBackend {
                 .arg("--remote-debugging-address=127.0.0.1")
                 .arg(format!("--remote-debugging-port={port}"));
         }
-        command.spawn().context("启动 Codex 失败")?;
+        command.spawn().context("failed to launch Codex")?;
         Ok(())
     }
 }

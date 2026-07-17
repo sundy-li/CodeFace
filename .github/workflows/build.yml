@@ -1,0 +1,42 @@
+name: Build
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  macos:
+    name: Build macOS app
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo xtask package
+      - run: ditto -c -k --sequesterRsrc --keepParent "dist/CodeFace.app" "dist/CodeFace-macos.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CodeFace-macOS
+          path: dist/CodeFace-macos.zip
+          if-no-files-found: error
+
+  windows:
+    name: Build Windows app
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo xtask package
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CodeFace-Windows
+          path: |
+            dist/windows/CodeFace.exe
+            dist/windows/CodeFace.ico
+          if-no-files-found: error

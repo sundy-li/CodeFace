@@ -11,16 +11,20 @@ const BINARY_NAME: &str = "codeface";
 fn workspace() -> Result<PathBuf> {
     Ok(PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .parent()
-        .context("xtask 不在 workspace 中")?
+        .context("xtask is not inside a workspace")?
         .to_path_buf())
 }
 
 fn run(command: &mut Command) -> Result<()> {
     let display = format!("{command:?}");
-    if command.status()?.success() {
+    if command
+        .status()
+        .with_context(|| format!("failed to start command: {display}"))?
+        .success()
+    {
         Ok(())
     } else {
-        bail!("命令失败: {display}")
+        bail!("command failed: {display}")
     }
 }
 
@@ -28,7 +32,7 @@ fn copy_file(source: &Path, target: &Path) -> Result<()> {
     if let Some(parent) = target.parent() {
         fs::create_dir_all(parent)?;
     }
-    fs::copy(source, target).with_context(|| format!("复制 {} 失败", source.display()))?;
+    fs::copy(source, target).with_context(|| format!("failed to copy {}", source.display()))?;
     Ok(())
 }
 
@@ -42,7 +46,7 @@ fn app_version(root: &Path) -> Result<String> {
                 .and_then(|value| value.strip_suffix('"'))
         })
         .map(str::to_owned)
-        .context("GUI Cargo.toml 缺少 version")
+        .context("GUI Cargo.toml is missing version")
 }
 
 fn package_macos(root: &Path) -> Result<PathBuf> {
@@ -60,6 +64,10 @@ fn package_macos(root: &Path) -> Result<PathBuf> {
     let contents = app.join("Contents");
     let executable = contents.join("MacOS/CodeFace");
     copy_file(&root.join("target/release").join(BINARY_NAME), &executable)?;
+    copy_file(
+        &root.join("resources/app-icon/CodeFace.icns"),
+        &contents.join("Resources/CodeFace.icns"),
+    )?;
     let version = app_version(root)?;
     let plist = format!(
         r#"<?xml version="1.0" encoding="UTF-8"?>
@@ -68,6 +76,7 @@ fn package_macos(root: &Path) -> Result<PathBuf> {
 <key>CFBundleDisplayName</key><string>{APP_NAME}</string>
 <key>CFBundleExecutable</key><string>CodeFace</string>
 <key>CFBundleIdentifier</key><string>com.codeface.app</string>
+<key>CFBundleIconFile</key><string>CodeFace</string>
 <key>CFBundleName</key><string>{APP_NAME}</string>
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>CFBundleShortVersionString</key><string>{}</string>
@@ -84,7 +93,7 @@ fn package_macos(root: &Path) -> Result<PathBuf> {
         "--deep",
         "--sign",
         "-",
-        app.to_str().context("App 路径不是 UTF-8")?,
+        app.to_str().context("app path is not valid UTF-8")?,
     ]))?;
     Ok(app)
 }
@@ -99,6 +108,10 @@ fn package_windows(root: &Path) -> Result<PathBuf> {
     ]))?;
     let output = root.join("dist/windows/CodeFace.exe");
     copy_file(&root.join("target/release/codeface.exe"), &output)?;
+    copy_file(
+        &root.join("resources/app-icon/CodeFace.ico"),
+        &root.join("dist/windows/CodeFace.ico"),
+    )?;
     Ok(output)
 }
 
@@ -106,14 +119,14 @@ fn main() -> Result<()> {
     let root = workspace()?;
     let command = env::args().nth(1).unwrap_or_else(|| "package".into());
     if command != "package" {
-        bail!("用法: cargo xtask package");
+        bail!("usage: cargo xtask package");
     }
     let artifact = if cfg!(target_os = "macos") {
         package_macos(&root)?
     } else if cfg!(target_os = "windows") {
         package_windows(&root)?
     } else {
-        bail!("当前仅支持 macOS 和 Windows")
+        bail!("only macOS and Windows are currently supported")
     };
     println!("Created {}", artifact.display());
     Ok(())
