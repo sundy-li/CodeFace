@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.1 — 2026-07-18
+
+- Updated the Windows, dialog, WebSocket, and system-information dependencies.
+- Updated GitHub Actions to current Node.js 24-compatible releases.
+- Preserved the verified macOS and Windows test, package, and automatic release pipeline.
+
 ## 1.1.0 — 2026-07-17
 
 - Added a protected system-default theme that restores the native Codex appearance.
