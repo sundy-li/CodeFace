@@ -23,11 +23,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - run: cargo xtask package
-      - run: ditto -c -k --sequesterRsrc --keepParent "dist/CodeFace.app" "dist/CodeFace-macos.zip"
+      - run: ditto -c -k --sequesterRsrc --keepParent "dist/CodeFace.app" "dist/CodeFace-macOS.zip"
       - uses: actions/upload-artifact@v7
         with:
           name: CodeFace-macOS
-          path: dist/CodeFace-macos.zip
+          path: dist/CodeFace-macOS.zip
           if-no-files-found: error
 
   windows:
