@@ -34,6 +34,31 @@ Release builds are currently not notarized or code-signed with a commercial cert
 - Follow the system language by default, or select a language in Settings
 - One shared GPUI interface and Rust core for macOS and Windows
 
+
+## Theme packs
+
+A theme directory contains:
+
+```text
+theme.json
+codeface.css
+background.png
+```
+
+The template is available in [`resources/theme-pack-template`](resources/theme-pack-template). Double-click a theme in the theme list to edit its source directly.
+
+### Built-in themes
+
+CodeFace includes five ready-to-use theme packs. Their full source is available in [`resources/theme-packs`](resources/theme-packs), and the preview images are collected in [`resources/examples`](resources/examples).
+
+| Theme | Preview | Description |
+| --- | --- | --- |
+| **Cyberpunk · Neon Skyline** | ![Cyberpunk theme preview](resources/examples/theme-cyberpunk.png) | A deep-blue cockpit interface with a neon city backdrop, cyan grid lines, and pink and amber accents. |
+| **Fan Zhendong · Champion Moment** | ![Fan Zhendong theme preview](resources/examples/theme-fzd.png) | A restrained dark arena look inspired by a championship moment, with cool blue highlights and a focused portrait backdrop. |
+| **Lovely Girl** | ![Lovely Girl theme preview](resources/examples/theme-lovely-girl.png) | A warm editorial style built from cream, old-paper, rose, and soft glass-like surfaces. |
+| **Messi · World Champion** | ![Messi theme preview](resources/examples/theme-messi.png) | A bright commemorative theme in Argentina sky blue and trophy gold, paired with a World Cup celebration image. |
+| **QQ 2007** | ![QQ 2007 theme preview](resources/examples/theme-qq2007.png) | A nostalgic compact desktop-software skin with glossy blue panels, beveled controls, and a classic QQ-inspired layout. |
+
 ## Why CDP?
 
 Codex does not provide a complete third-party theming API. CodeFace uses the debugging protocol built into Codex's Chromium runtime to add styles at runtime instead of repackaging or modifying the official app.
@@ -92,29 +117,6 @@ Windows output:
 dist/windows/CodeFace.exe
 ```
 
-## Theme packs
-
-A theme directory contains:
-
-```text
-theme.json
-codeface.css
-background.png
-```
-
-The template is available in [`resources/theme-pack-template`](resources/theme-pack-template). Double-click a theme in the theme list to edit its source directly.
-
-### Built-in themes
-
-CodeFace includes five ready-to-use theme packs. Their full source is available in [`resources/theme-packs`](resources/theme-packs), and the preview images are collected in [`resources/examples`](resources/examples).
-
-| Theme | Preview | Description |
-| --- | --- | --- |
-| **Cyberpunk · Neon Skyline** | ![Cyberpunk theme preview](resources/examples/theme-cyberpunk.png) | A deep-blue cockpit interface with a neon city backdrop, cyan grid lines, and pink and amber accents. |
-| **Fan Zhendong · Champion Moment** | ![Fan Zhendong theme preview](resources/examples/theme-fzd.png) | A restrained dark arena look inspired by a championship moment, with cool blue highlights and a focused portrait backdrop. |
-| **Lovely Girl** | ![Lovely Girl theme preview](resources/examples/theme-lovely-girl.png) | A warm editorial style built from cream, old-paper, rose, and soft glass-like surfaces. |
-| **Messi · World Champion** | ![Messi theme preview](resources/examples/theme-messi.png) | A bright commemorative theme in Argentina sky blue and trophy gold, paired with a World Cup celebration image. |
-| **QQ 2007** | ![QQ 2007 theme preview](resources/examples/theme-qq2007.png) | A nostalgic compact desktop-software skin with glossy blue panels, beveled controls, and a classic QQ-inspired layout. |
 
 ## Data directories
 
