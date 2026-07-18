@@ -24,10 +24,22 @@ Release builds are currently not notarized or code-signed with a commercial cert
 
 ## Features
 
-- Create, edit, import, and switch themes
+### Manage themes
+
+- Create, browse, preview, edit, delete, and switch themes from one place
+- Import theme packs and manage them alongside built-in and locally created themes
 - Edit `theme.json` and `codeface.css` directly, with CSS syntax highlighting
-- Import PNG, JPEG, or WebP background images
-- Generate a plain white background automatically when no image is selected
+
+### Customize themes with an LLM
+
+1. Create or open a theme, then upload a PNG, JPEG, or WebP background image.
+2. Click **Copy full prompt** to copy the theme files, image information, editable paths, layout requirements, and safety constraints as one complete prompt.
+3. Paste the prompt into an LLM and describe the visual style you want. An LLM with access to the theme directory can then update the theme for you.
+
+CodeFace generates a plain white background automatically when no image is selected.
+
+### More features
+
 - Preview themes on the home screen with four native shortcut suggestions
 - Close or restart Codex from the manager
 - English and Simplified Chinese interfaces
