@@ -13,12 +13,21 @@
 }
 
 html.codeface body {
+  font-family: var(--cf-font-sans, system-ui, sans-serif) !important;
+  font-size: var(--cf-font-size, 14px) !important;
+  line-height: var(--cf-line-height, 1.5) !important;
   background:
     radial-gradient(circle at 84% 4%, rgba(100, 42, 140, .40), transparent 28%),
     radial-gradient(circle at 18% 10%, rgba(54, 215, 232, .12), transparent 30%),
     linear-gradient(145deg, #050a10 0%, #071116 52%, #0b151a 100%) !important;
   color: var(--cf-text) !important;
   font-family: "Microsoft YaHei UI", "Microsoft YaHei", "Segoe UI", system-ui, sans-serif !important;
+}
+
+html.codeface code,
+html.codeface pre,
+html.codeface kbd {
+  font-family: var(--cf-font-mono, ui-monospace, monospace) !important;
 }
 
 html.codeface body::before {
@@ -89,7 +98,7 @@ html.codeface main.main-surface {
   border: 1px solid rgba(54, 215, 232, .18) !important;
   border-right: 0 !important;
   border-bottom: 0 !important;
-  border-radius: 18px 0 0 0 !important;
+  border-radius: var(--cf-radius-lg, 18px) 0 0 0 !important;
   box-shadow: inset 0 1px rgba(255, 255, 255, .04), -10px 0 34px rgba(0, 0, 0, .22) !important;
   overflow: hidden !important;
 }
@@ -124,7 +133,7 @@ html.codeface main.main-surface > header.app-header-tint {
   z-index: 31;
   pointer-events: none;
   overflow: hidden;
-  border-radius: 18px 0 0 0;
+  border-radius: var(--cf-radius-lg, 18px) 0 0 0;
 }
 
 .codeface-brand {
@@ -213,13 +222,21 @@ html.codeface main.main-surface > header.app-header-tint {
 }
 #codeface-chrome.codeface-home-shell .codeface-orbit { display: block; }
 
+html.codeface[data-codeface-chrome-brand="false"] #codeface-chrome .codeface-brand,
+html.codeface[data-codeface-chrome-status="false"] #codeface-chrome .codeface-status,
+html.codeface[data-codeface-chrome-quote="false"] #codeface-chrome .codeface-quote,
+html.codeface[data-codeface-chrome-particles="false"] #codeface-chrome .codeface-particles,
+html.codeface[data-codeface-chrome-orbit="false"] #codeface-chrome .codeface-orbit {
+  display: none !important;
+}
+
 html.codeface [role="main"] {
   background: transparent !important;
   scrollbar-color: rgba(124, 255, 70, .40) transparent;
 }
 
 html.codeface .codeface-home {
-  --thread-content-max-width: min(950px, calc(100cqw - 44px)) !important;
+  --thread-content-max-width: min(var(--cf-content-max-width, 950px), calc(100cqw - 44px)) !important;
   overflow-x: hidden !important;
 }
 
@@ -240,12 +257,12 @@ html.codeface .codeface-home {
   isolation: isolate;
   width: calc(100% - 44px) !important;
   max-width: none !important;
-  height: 252px !important;
-  min-height: 252px !important;
+  height: var(--cf-hero-height, 252px) !important;
+  min-height: var(--cf-hero-height, 252px) !important;
   flex: 0 1 auto !important;
   padding: 0 !important;
   border: 1px solid rgba(124, 255, 70, .62) !important;
-  border-radius: 24px !important;
+  border-radius: var(--cf-radius-xl, 24px) !important;
   overflow: visible !important;
   background-color: rgb(8 16 28 / var(--codeface-hero-panel-opacity, 1)) !important;
   background-image:
@@ -445,13 +462,15 @@ html.codeface .codeface-home {
 .codeface-home .group\/home-suggestions button > span:last-child { align-items: center !important; text-align: center !important; }
 
 html.codeface .composer-surface-chrome {
+  width: min(100%, var(--cf-composer-max-width, 820px)) !important;
+  margin-inline: auto !important;
   border: 1px solid rgba(124, 255, 70, .32) !important;
-  border-radius: 23px !important;
+  border-radius: var(--cf-radius-xl, 23px) !important;
   background:
     radial-gradient(circle at 88% 20%, rgba(100, 42, 140, .16), transparent 26%),
     linear-gradient(145deg, rgba(11, 29, 34, .91), rgba(7, 20, 27, .88)) !important;
   box-shadow: 0 11px 28px rgba(0, 0, 0, .34), inset 0 0 0 3px rgba(54, 215, 232, .04) !important;
-  backdrop-filter: blur(18px) saturate(118%) !important;
+  backdrop-filter: blur(var(--cf-blur, 18px)) saturate(var(--cf-saturation, 1.18)) !important;
   overflow: visible !important;
 }
 
@@ -509,7 +528,7 @@ html.codeface button[class~="bg-token-foreground"] {
 }
 
 html.codeface article,
-html.codeface [data-message-author-role] { border-radius: 18px; }
+html.codeface [data-message-author-role] { border-radius: var(--cf-radius-lg, 18px); }
 
 @keyframes cf-float {
   0%, 100% { transform: translate3d(0, 0, 0); opacity: .48; }

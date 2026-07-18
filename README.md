@@ -2,9 +2,25 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
+<p align="center">
+  <img src="resources/app-icon/codeface-icon-1024.png" alt="CodeFace logo" width="160">
+</p>
+
+
 CodeFace is a native, cross-platform appearance manager for the Codex desktop app. Built with Rust and GPUI, it injects theme CSS and the required UI integration code through the Chrome DevTools Protocol (CDP), bound exclusively to the local loopback interface.
 
 CodeFace does not modify the official Codex application, Windows installation, `app.asar`, code signatures, authentication state, or API configuration. Disabling a theme safely restores the official interface.
+
+![CodeFace application interface](resources/CodeFace.png)
+
+## Install
+
+Download the latest package from [GitHub Releases](https://github.com/sundy-li/CodeFace/releases/latest):
+
+- **macOS 13 or later:** Download `CodeFace-macOS.zip`, extract it, and move `CodeFace.app` to Applications.
+- **Windows:** Download `CodeFace-Windows.zip`, extract it, and run `CodeFace.exe`.
+
+Release builds are currently not notarized or code-signed with a commercial certificate. On macOS, if Gatekeeper blocks the first launch, right-click `CodeFace.app`, choose **Open**, and confirm. Only download builds from this repository's Releases page.
 
 ## Features
 
@@ -88,6 +104,18 @@ background.png
 
 The template is available in [`resources/theme-pack-template`](resources/theme-pack-template). Double-click a theme in the theme list to edit its source directly.
 
+### Built-in themes
+
+CodeFace includes five ready-to-use theme packs. Their full source is available in [`resources/theme-packs`](resources/theme-packs), and the preview images are collected in [`resources/examples`](resources/examples).
+
+| Theme | Preview | Description |
+| --- | --- | --- |
+| **Cyberpunk · Neon Skyline** | ![Cyberpunk theme preview](resources/examples/theme-cyberpunk.png) | A deep-blue cockpit interface with a neon city backdrop, cyan grid lines, and pink and amber accents. |
+| **Fan Zhendong · Champion Moment** | ![Fan Zhendong theme preview](resources/examples/theme-fzd.png) | A restrained dark arena look inspired by a championship moment, with cool blue highlights and a focused portrait backdrop. |
+| **Lovely Girl** | ![Lovely Girl theme preview](resources/examples/theme-lovely-girl.png) | A warm editorial style built from cream, old-paper, rose, and soft glass-like surfaces. |
+| **Messi · World Champion** | ![Messi theme preview](resources/examples/theme-messi.png) | A bright commemorative theme in Argentina sky blue and trophy gold, paired with a World Cup celebration image. |
+| **QQ 2007** | ![QQ 2007 theme preview](resources/examples/theme-qq2007.png) | A nostalgic compact desktop-software skin with glossy blue panels, beveled controls, and a classic QQ-inspired layout. |
+
 ## Data directories
 
 - macOS: `~/Library/Application Support/CodeFace`
@@ -107,6 +135,8 @@ codeface --print-data-root
 ## Documentation
 
 Start with [`docs/README.md`](docs/README.md) for the user guide, theme-pack format, architecture and security model, development and build instructions, CI and release process, and troubleshooting.
+
+Contributions are welcome. Read [`CONTRIBUTING.md`](CONTRIBUTING.md), follow the [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md), and report security issues according to [`SECURITY.md`](SECURITY.md).
 
 ## Acknowledgements
 

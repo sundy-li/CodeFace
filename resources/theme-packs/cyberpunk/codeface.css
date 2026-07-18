@@ -1,0 +1,803 @@
+/* Neon Skyline — appended after the safe base skin. Native controls stay live. */
+
+html.codeface {
+  --cf-neon-cyan: #43d9ff;
+  --cf-neon-blue: #358cff;
+  --cf-neon-pink: #ff4fa3;
+  --cf-neon-amber: #ffcb6b;
+  --cf-deep-0: #050b15;
+  --cf-deep-1: #07111f;
+  --cf-deep-2: #0d1b2d;
+  --cf-glass: rgba(13, 27, 45, .9);
+  --cf-glass-soft: rgba(18, 38, 60, .76);
+  --cf-neon-line: rgba(67, 217, 255, .28);
+  --cf-ease: cubic-bezier(.2, .8, .2, 1);
+}
+
+html.codeface body {
+  background: linear-gradient(145deg, var(--cf-deep-0), var(--cf-deep-1) 48%, #0b1930) !important;
+  color: var(--cf-text) !important;
+}
+
+html.codeface body::before {
+  opacity: .16 !important;
+  background-image:
+    linear-gradient(rgba(67, 217, 255, .035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(67, 217, 255, .035) 1px, transparent 1px) !important;
+  background-size: 48px 48px !important;
+  pointer-events: none !important;
+}
+
+/* Left navigation: a stable cockpit rail with unambiguous interaction states. */
+html.codeface aside.app-shell-left-panel,
+html.codeface[data-codeface-shell="light"] aside.app-shell-left-panel {
+  border-color: var(--cf-neon-line) !important;
+  border-left: 0 !important;
+  background: linear-gradient(180deg, rgba(7, 17, 31, .98), rgba(13, 27, 45, .97) 56%, rgba(9, 20, 38, .98)) !important;
+  color: var(--cf-text) !important;
+  box-shadow: 10px 0 38px rgba(0, 5, 18, .42), inset -1px 0 rgba(67, 217, 255, .08) !important;
+  backdrop-filter: blur(20px) saturate(112%) !important;
+}
+
+html.codeface aside.app-shell-left-panel nav { background: transparent !important; }
+
+html.codeface aside.app-shell-left-panel button,
+html.codeface aside.app-shell-left-panel a {
+  color: var(--cf-text) !important;
+  border-color: transparent !important;
+  transition: background-color 160ms var(--cf-ease), border-color 160ms var(--cf-ease), color 160ms var(--cf-ease), box-shadow 160ms var(--cf-ease), transform 160ms var(--cf-ease) !important;
+}
+
+html.codeface aside.app-shell-left-panel svg { color: var(--cf-muted) !important; }
+
+html.codeface aside.app-shell-left-panel button:hover,
+html.codeface aside.app-shell-left-panel a:hover {
+  background: rgba(67, 217, 255, .09) !important;
+  color: #ffffff !important;
+  box-shadow: inset 0 0 0 1px rgba(67, 217, 255, .18) !important;
+  transform: translateX(1px) !important;
+}
+
+html.codeface aside.app-shell-left-panel button:active,
+html.codeface aside.app-shell-left-panel a:active {
+  background: rgba(53, 140, 255, .16) !important;
+  transform: translateX(1px) scale(.985) !important;
+}
+
+html.codeface aside.app-shell-left-panel [class~="bg-token-list-hover-background"],
+html.codeface aside.app-shell-left-panel [aria-current="page"] {
+  border: 1px solid rgba(67, 217, 255, .32) !important;
+  background: linear-gradient(90deg, rgba(67, 217, 255, .15), rgba(53, 140, 255, .08)) !important;
+  color: #f4fbff !important;
+  box-shadow: inset 3px 0 var(--cf-neon-cyan), 0 0 20px rgba(67, 217, 255, .08) !important;
+}
+
+html.codeface :is(button, a, input, textarea, [role="button"]):focus-visible {
+  outline: 2px solid var(--cf-neon-cyan) !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 4px rgba(67, 217, 255, .14) !important;
+}
+
+/* Home keeps the city image; overlays create a quiet zone for native content. */
+html.codeface main.main-surface { border-color: rgba(67, 217, 255, .18) !important; }
+
+html.codeface main.main-surface.codeface-home-shell {
+  background-position: var(--codeface-background-position, center 42%) !important;
+  background-size: cover !important;
+}
+
+html.codeface main.main-surface.codeface-home-shell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    linear-gradient(180deg, rgba(4, 10, 20, .24), rgba(4, 10, 20, .03) 34%, rgba(4, 10, 20, .54) 74%, rgba(4, 10, 20, .82)),
+    radial-gradient(circle at 50% 38%, transparent 0 28%, rgba(5, 11, 21, .24) 68%, rgba(5, 11, 21, .5));
+  pointer-events: none;
+}
+
+html.codeface main.main-surface.codeface-home-shell > * { position: relative; z-index: 1; }
+
+/* Task and chat routes use image-derived solids, never the detailed skyline. */
+html.codeface main.main-surface:not(.codeface-home-shell) {
+  background:
+    radial-gradient(circle at 88% 5%, rgba(53, 140, 255, .08), transparent 34%),
+    radial-gradient(circle at 8% 92%, rgba(255, 79, 163, .045), transparent 30%),
+    linear-gradient(145deg, #081321, #0b1829 52%, #0a1526) !important;
+  box-shadow: inset 0 1px rgba(185, 243, 255, .05), -10px 0 34px rgba(0, 5, 18, .34) !important;
+}
+
+html.codeface main.main-surface:not(.codeface-home-shell) > header.app-header-tint {
+  border-bottom: 1px solid rgba(67, 217, 255, .16) !important;
+  background: rgba(8, 19, 33, .88) !important;
+  box-shadow: 0 8px 26px rgba(0, 7, 22, .24) !important;
+  backdrop-filter: blur(22px) saturate(112%) !important;
+}
+
+html.codeface main.main-surface:not(.codeface-home-shell) article {
+  border: 1px solid rgba(141, 167, 189, .18) !important;
+  border-radius: 15px !important;
+  background: rgba(13, 27, 45, .82) !important;
+  color: var(--cf-text) !important;
+  box-shadow: 0 9px 28px rgba(0, 5, 18, .22) !important;
+  backdrop-filter: blur(12px) saturate(106%) !important;
+}
+
+html.codeface main.main-surface:not(.codeface-home-shell) [data-message-author-role="user"] {
+  border-color: rgba(67, 217, 255, .3) !important;
+  background: linear-gradient(135deg, rgba(18, 54, 79, .94), rgba(20, 39, 67, .94)) !important;
+  box-shadow: inset 3px 0 rgba(67, 217, 255, .6), 0 8px 24px rgba(0, 8, 24, .2) !important;
+}
+
+html.codeface main.main-surface:not(.codeface-home-shell) :is(pre, code) {
+  border-color: rgba(67, 217, 255, .18) !important;
+  background-color: rgba(4, 12, 23, .78) !important;
+}
+
+html.codeface main.main-surface:not(.codeface-home-shell) a {
+  color: #79e5ff !important;
+  text-decoration-color: rgba(67, 217, 255, .5) !important;
+}
+
+html.codeface main.main-surface:not(.codeface-home-shell) a:hover { color: #b9f3ff !important; }
+
+/* Hero title and real project link remain readable against the skyline. */
+html.codeface .codeface-home > div:first-child > div:first-child > div:first-child {
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+html.codeface .codeface-home [data-feature="game-source"] {
+  color: #f4fbff !important;
+  text-shadow: 0 2px 18px rgba(0, 5, 18, .95), 0 0 28px rgba(67, 217, 255, .18) !important;
+}
+
+html.codeface .codeface-home [data-feature="game-source"]::before {
+  color: var(--cf-neon-cyan) !important;
+  text-shadow: 0 0 16px rgba(67, 217, 255, .48) !important;
+}
+
+html.codeface .codeface-home [data-feature="game-source"]::after {
+  color: #b7cada !important;
+  text-shadow: 0 2px 14px rgba(0, 5, 18, .95) !important;
+}
+
+html.codeface .codeface-home [data-feature="game-source"] button {
+  margin-inline: .32em !important;
+  padding: .2em .62em .24em !important;
+  border: 1px solid rgba(67, 217, 255, .52) !important;
+  background: rgba(7, 23, 40, .82) !important;
+  color: #b9f3ff !important;
+  font: inherit !important;
+  font-size: .86em !important;
+  font-weight: 720 !important;
+  text-shadow: none !important;
+  box-shadow: 0 0 18px rgba(67, 217, 255, .12) !important;
+}
+
+html.codeface .codeface-home [data-feature="game-source"] button:hover {
+  border-color: #72e4ff !important;
+  background: rgba(18, 54, 79, .94) !important;
+}
+
+html.codeface .codeface-home [data-feature="game-source"] button:active { transform: scale(.98) !important; }
+
+/* Suggestion cards and expanded native option list. */
+html.codeface .codeface-home > div:first-child > div:first-child > div:first-child > div:nth-child(2) {
+  top: max(246px, calc(100cqh - 432px)) !important;
+}
+
+html.codeface .codeface-home .group\/home-suggestions:not(:has(.group\/home-suggestion-list-item)) {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  height: auto !important;
+  max-height: none !important;
+}
+
+html.codeface .codeface-home .group\/home-suggestions:not(:has(.group\/home-suggestion-list-item)) > div {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+html.codeface .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item) {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  min-height: 86px !important;
+  padding: 11px 14px !important;
+  border: 1px solid rgba(67, 217, 255, .25) !important;
+  border-radius: 15px !important;
+  background: linear-gradient(145deg, rgba(10, 27, 46, .9), rgba(17, 38, 62, .86)) !important;
+  color: var(--cf-text) !important;
+  box-shadow: 0 10px 28px rgba(0, 7, 22, .32), inset 0 1px rgba(185, 243, 255, .08) !important;
+  backdrop-filter: blur(18px) saturate(116%) !important;
+  overflow: hidden !important;
+  transition: border-color 180ms var(--cf-ease), background-color 180ms var(--cf-ease), box-shadow 180ms var(--cf-ease), transform 180ms var(--cf-ease) !important;
+}
+
+html.codeface .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item):hover {
+  border-color: rgba(67, 217, 255, .68) !important;
+  background: linear-gradient(145deg, rgba(15, 46, 70, .94), rgba(24, 43, 76, .92)) !important;
+  box-shadow: 0 12px 30px rgba(0, 7, 22, .38), 0 0 20px rgba(67, 217, 255, .09) !important;
+  transform: translateY(-2px) !important;
+}
+
+html.codeface .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item):active {
+  border-color: var(--cf-neon-pink) !important;
+  transform: translateY(0) scale(.985) !important;
+}
+
+html.codeface .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item)::after {
+  margin-top: 6px !important;
+  color: #9fb6c9 !important;
+  font-size: 13px !important;
+  line-height: 1.45 !important;
+}
+
+html.codeface .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item) > span:first-child > span:first-child {
+  display: grid !important;
+  width: 34px !important;
+  height: 34px !important;
+  place-items: center !important;
+  border: 1px solid rgba(67, 217, 255, .38) !important;
+  border-radius: 10px !important;
+  background: linear-gradient(145deg, rgba(67, 217, 255, .24), rgba(138, 125, 255, .28)) !important;
+  box-shadow: 0 0 18px rgba(67, 217, 255, .14) !important;
+}
+
+html.codeface .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item) svg {
+  position: static !important;
+  width: 18px !important;
+  height: 18px !important;
+  margin: auto !important;
+  color: #b9f3ff !important;
+  transform: none !important;
+}
+
+html.codeface .codeface-home .group\/home-suggestions:has(.group\/home-suggestion-list-item) {
+  display: block !important;
+  width: min(580px, 100%) !important;
+  max-height: min(280px, 42cqh) !important;
+  padding: 8px !important;
+  border: 1px solid rgba(67, 217, 255, .3) !important;
+  border-radius: 16px !important;
+  background: rgba(8, 22, 38, .96) !important;
+  box-shadow: 0 18px 46px rgba(0, 5, 18, .48) !important;
+  backdrop-filter: blur(22px) saturate(112%) !important;
+  overflow-y: auto !important;
+}
+
+html.codeface .codeface-home .group\/home-suggestion-list-item {
+  display: flex !important;
+  align-items: center !important;
+  width: 100% !important;
+  min-height: 46px !important;
+  padding: 7px 12px !important;
+  gap: 11px !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+  color: var(--cf-text) !important;
+  text-align: left !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+html.codeface .codeface-home .group\/home-suggestion-list-item:hover {
+  background: rgba(67, 217, 255, .1) !important;
+  box-shadow: inset 0 0 0 1px rgba(67, 217, 255, .18) !important;
+}
+
+html.codeface .codeface-home .group\/home-suggestion-list-item:active { background: rgba(53, 140, 255, .17) !important; }
+
+html.codeface .codeface-home .group\/home-suggestion-list-item::after { content: none !important; }
+
+/* Native project selector remains a real toolbar. */
+html.codeface .codeface-home div:has(> .horizontal-scroll-fade-mask .group\/project-selector) {
+  padding: 32px 14px 10px !important;
+  margin-bottom: 8px !important;
+  top: 0 !important;
+  border: 1px solid rgba(67, 217, 255, .24) !important;
+  border-radius: 15px !important;
+  background: rgba(8, 22, 38, .9) !important;
+  box-shadow: 0 10px 28px rgba(0, 7, 22, .34) !important;
+  backdrop-filter: blur(20px) saturate(114%) !important;
+  overflow: hidden !important;
+}
+
+html.codeface .codeface-home div:has(> .horizontal-scroll-fade-mask .group\/project-selector)::before {
+  left: 16px !important;
+  top: 9px !important;
+  color: #9fb6c9 !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: .08em !important;
+}
+
+html.codeface .codeface-home .group\/project-selector > button {
+  min-height: 36px !important;
+  padding-inline: 12px !important;
+  border: 1px solid rgba(141, 167, 189, .28) !important;
+  border-radius: 9px !important;
+  background: rgba(18, 38, 60, .88) !important;
+  color: var(--cf-text) !important;
+  box-shadow: none !important;
+  transition: background-color 160ms var(--cf-ease), border-color 160ms var(--cf-ease), transform 160ms var(--cf-ease) !important;
+}
+
+html.codeface .codeface-home .group\/project-selector > button:hover {
+  border-color: rgba(67, 217, 255, .6) !important;
+  background: rgba(20, 54, 78, .96) !important;
+}
+
+html.codeface .codeface-home .group\/project-selector > button:active { transform: scale(.98) !important; }
+
+/* Composer is the brightest functional surface, without decorative overlays. */
+html.codeface .composer-surface-chrome,
+html.codeface[data-codeface-shell="light"] .composer-surface-chrome {
+  border: 1px solid rgba(67, 217, 255, .34) !important;
+  background: rgba(9, 23, 40, .95) !important;
+  box-shadow: 0 18px 48px rgba(0, 5, 18, .48), 0 0 22px rgba(67, 217, 255, .06), inset 0 1px rgba(185, 243, 255, .08) !important;
+  backdrop-filter: blur(22px) saturate(114%) !important;
+}
+
+html.codeface .composer-surface-chrome:focus-within {
+  border-color: rgba(67, 217, 255, .68) !important;
+  box-shadow: 0 18px 48px rgba(0, 5, 18, .52), 0 0 0 3px rgba(67, 217, 255, .1) !important;
+}
+
+html.codeface .composer-surface-chrome::before { content: none !important; display: none !important; }
+html.codeface .ProseMirror { color: var(--cf-text) !important; caret-color: var(--cf-neon-cyan) !important; }
+
+html.codeface #codeface-chrome.codeface-home-shell .codeface-quote,
+html.codeface #codeface-chrome.codeface-home-shell .codeface-orbit { display: none !important; }
+
+html.codeface .codeface-status i {
+  background: var(--cf-neon-cyan) !important;
+  box-shadow: 0 0 12px rgba(67, 217, 255, .75) !important;
+}
+
+html.codeface ::selection { background: rgba(67, 217, 255, .28); color: #ffffff; }
+
+@media (max-height: 760px) {
+  html.codeface .codeface-home > div:first-child > div:first-child > div:first-child > div:nth-child(2) {
+    top: max(222px, calc(100cqh - 394px)) !important;
+  }
+  html.codeface .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item) { min-height: 78px !important; }
+}
+
+@media (max-width: 900px) {
+  html.codeface .codeface-home > div:first-child > div:first-child > div:first-child > div:nth-child(2) {
+    top: max(224px, calc(100cqh - 540px)) !important;
+  }
+}
+
+@media (max-width: 560px) {
+  html.codeface .codeface-home > div:first-child > div:first-child > div:first-child > div:nth-child(2) {
+    top: max(208px, calc(100cqh - 650px)) !important;
+  }
+  html.codeface .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item) {
+    min-height: 70px !important;
+    padding: 9px 10px !important;
+    border-radius: 13px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.codeface *,
+  html.codeface *::before,
+  html.codeface *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+  html.codeface :is(button, a, [role="button"]):hover,
+  html.codeface :is(button, a, [role="button"]):active { transform: none !important; }
+}
+
+/* ========================================================================
+   Skyline UX refinement: one palette, semantic foregrounds, clear skyline
+   ======================================================================== */
+
+html.codeface,
+html.codeface[data-codeface-shell="light"] {
+  color-scheme: dark !important;
+  --sky-canvas: #08121f;
+  --sky-panel: #0e1c2d;
+  --sky-panel-raised: #14283c;
+  --sky-cyan: #62d6ea;
+  --sky-cyan-soft: #a1eaf3;
+  --sky-coral: #f48b74;
+  --sky-text: #eff7fa;
+  --sky-muted: #9aafc0;
+  --sky-line: #315069;
+  --cf-bg: var(--sky-canvas) !important;
+  --cf-panel: var(--sky-panel) !important;
+  --cf-panel-2: var(--sky-panel-raised) !important;
+  --cf-text: var(--sky-text) !important;
+  --cf-muted: var(--sky-muted) !important;
+  --cf-line: var(--sky-line) !important;
+}
+
+html.codeface body,
+html.codeface[data-codeface-shell="light"] body {
+  background:
+    radial-gradient(circle at 80% 4%, rgba(98, 214, 234, .08), transparent 30%),
+    linear-gradient(145deg, #0e1c2d, #08121f 54%, #070e19) !important;
+  color: var(--sky-text) !important;
+}
+
+html.codeface body::before,
+html.codeface[data-codeface-shell="light"] body::before {
+  opacity: .1 !important;
+  background-image:
+    linear-gradient(rgba(98, 214, 234, .045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(98, 214, 234, .045) 1px, transparent 1px) !important;
+  background-size: 56px 56px !important;
+  mask-image: linear-gradient(to bottom, black, transparent 76%) !important;
+  pointer-events: none !important;
+}
+
+/* Navigation uses the same fog-blue blacks as the skyline. */
+html.codeface aside.app-shell-left-panel,
+html.codeface[data-codeface-shell="light"] aside.app-shell-left-panel {
+  color-scheme: dark !important;
+  border-color: rgba(98, 214, 234, .14) !important;
+  background: linear-gradient(180deg, rgba(14, 28, 45, .99), rgba(8, 18, 31, .99)) !important;
+  color: var(--sky-text) !important;
+  box-shadow: 10px 0 34px rgba(2, 7, 16, .38), inset -1px 0 rgba(161, 234, 243, .05) !important;
+  backdrop-filter: none !important;
+}
+
+html.codeface aside.app-shell-left-panel :is(button, a, span, div),
+html.codeface[data-codeface-shell="light"] aside.app-shell-left-panel :is(button, a, span, div) {
+  color: var(--sky-text) !important;
+}
+
+html.codeface aside.app-shell-left-panel svg,
+html.codeface[data-codeface-shell="light"] aside.app-shell-left-panel svg { color: var(--sky-muted) !important; }
+
+html.codeface aside.app-shell-left-panel :is(button, a):hover,
+html.codeface[data-codeface-shell="light"] aside.app-shell-left-panel :is(button, a):hover {
+  border-color: transparent !important;
+  background: rgba(98, 214, 234, .08) !important;
+  color: var(--sky-text) !important;
+  box-shadow: inset 0 0 0 1px rgba(98, 214, 234, .12) !important;
+  transform: none !important;
+}
+
+html.codeface aside.app-shell-left-panel :is(button, a):active { transform: scale(.985) !important; }
+
+html.codeface aside.app-shell-left-panel :is([class~="bg-token-list-hover-background"], [aria-current="page"]),
+html.codeface[data-codeface-shell="light"] aside.app-shell-left-panel :is([class~="bg-token-list-hover-background"], [aria-current="page"]) {
+  border-color: rgba(98, 214, 234, .25) !important;
+  background: linear-gradient(90deg, rgba(98, 214, 234, .17), rgba(63, 113, 155, .08)) !important;
+  color: var(--sky-text) !important;
+  box-shadow: inset 3px 0 var(--sky-cyan) !important;
+}
+
+html.codeface :is(button, a, input, textarea, [role="button"], [contenteditable="true"]):focus-visible {
+  outline: 2px solid var(--sky-cyan) !important;
+  outline-offset: 2px !important;
+  box-shadow: none !important;
+}
+
+/* Codex is often in light appearance; scope dark semantic tokens to main only. */
+html.codeface main.main-surface {
+  --color-token-foreground: #eff7fa;
+  --color-token-text-primary: #eff7fa;
+  --color-token-text-secondary: #aebfcb;
+  --color-token-text-tertiary: #7f95a7;
+  --color-token-description-foreground: #8da2b3;
+  --color-token-conversation-body: #c7d5dd;
+  --color-token-conversation-header: #8398a9;
+  --color-token-conversation-summary-leading: #96aaba;
+  --color-token-conversation-summary-trailing: #718697;
+  --color-token-non-assistant-body-descendant: #aebfcb;
+  --color-token-icon-foreground: #aebfcb;
+  --color-token-disabled-foreground: #657a8c;
+  --color-token-border: rgba(126, 158, 181, .18);
+  --color-token-border-default: rgba(126, 158, 181, .18);
+  --color-token-border-light: rgba(126, 158, 181, .11);
+  --color-token-border-heavy: rgba(126, 158, 181, .28);
+  --color-token-bg-primary: #08121f;
+  --color-token-bg-secondary: #0e1c2d;
+  --color-token-bg-tertiary: #14283c;
+  --color-token-bg-fog: rgba(98, 214, 234, .055);
+  --color-token-main-surface-primary: #08121f;
+  --color-token-dropdown-background: #14283c;
+  --color-token-dropdown-foreground: #eff7fa;
+  --color-token-menu-background: rgba(20, 40, 60, .98);
+  --color-token-menu-border: rgba(126, 158, 181, .22);
+  --color-token-input-background: #101f31;
+  --color-token-input-foreground: #eff7fa;
+  --color-token-input-placeholder-foreground: #718697;
+  --color-token-input-border: rgba(98, 214, 234, .26);
+  --color-token-list-hover-background: rgba(98, 214, 234, .08);
+  --color-token-list-active-selection-background: rgba(98, 214, 234, .15);
+  --color-token-list-active-selection-foreground: #eff7fa;
+  --color-token-list-active-selection-icon-foreground: #a1eaf3;
+  --color-token-toolbar-hover-background: rgba(98, 214, 234, .08);
+  --color-token-button-secondary-hover-background: rgba(98, 214, 234, .09);
+  --color-token-badge-background: rgba(98, 214, 234, .09);
+  --color-token-badge-foreground: #c7d5dd;
+  --color-token-focus-border: #62d6ea;
+  --color-token-primary: #62d6ea;
+  --color-token-link: #7fdfed;
+  --color-token-text-link-foreground: #7fdfed;
+  --color-token-text-link-active-foreground: #a1eaf3;
+  --color-token-diff-surface: #112235;
+  --color-token-text-preformat-background: #14283c;
+  --color-token-text-preformat-foreground: #e2edf2;
+  --color-token-text-code-block-background: rgba(126, 158, 181, .08);
+  --color-token-scrollbar-slider-background: rgba(126, 158, 181, .18);
+  --color-token-scrollbar-slider-hover-background: rgba(126, 158, 181, .28);
+  --color-token-button-background: #62d6ea;
+  --color-token-button-foreground: #07121d;
+  --color-token-button-border: rgba(98, 214, 234, .4);
+  --color-token-on-accent: #07121d;
+  border-color: rgba(98, 214, 234, .14) !important;
+}
+
+/* Chat/task routes never repeat the detailed city image. */
+html.codeface main.main-surface:not(.codeface-home-shell),
+html.codeface[data-codeface-shell="light"] main.main-surface:not(.codeface-home-shell) {
+  background:
+    radial-gradient(circle at 86% 4%, rgba(98, 214, 234, .07), transparent 32%),
+    linear-gradient(150deg, #0e1c2d 0%, #08121f 58%, #070f1b 100%) !important;
+  color: var(--sky-text) !important;
+  box-shadow: inset 0 1px rgba(161, 234, 243, .035), -8px 0 28px rgba(2, 7, 16, .3) !important;
+}
+
+html.codeface main.main-surface > header.app-header-tint,
+html.codeface[data-codeface-shell="light"] main.main-surface > header.app-header-tint {
+  border-bottom-color: rgba(98, 214, 234, .13) !important;
+  background: rgba(8, 18, 31, .94) !important;
+  color: var(--sky-text) !important;
+  box-shadow: 0 8px 22px rgba(2, 7, 16, .2) !important;
+  backdrop-filter: blur(12px) saturate(104%) !important;
+}
+
+html.codeface main.main-surface > header.app-header-tint :is(button, a, span, div) { color: var(--sky-text) !important; }
+html.codeface main.main-surface > header.app-header-tint svg { color: var(--sky-muted) !important; }
+
+html.codeface main.main-surface:not(.codeface-home-shell) article,
+html.codeface[data-codeface-shell="light"] main.main-surface:not(.codeface-home-shell) article {
+  border-color: rgba(126, 158, 181, .14) !important;
+  background: rgba(14, 28, 45, .86) !important;
+  color: var(--sky-text) !important;
+  box-shadow: 0 8px 24px rgba(2, 7, 16, .18), inset 0 1px rgba(161, 234, 243, .03) !important;
+  backdrop-filter: blur(8px) saturate(102%) !important;
+}
+
+html.codeface main.main-surface:not(.codeface-home-shell) [data-message-author-role="user"] {
+  border-color: rgba(98, 214, 234, .24) !important;
+  background: linear-gradient(135deg, rgba(31, 73, 94, .5), rgba(24, 48, 74, .58)) !important;
+  box-shadow: inset 3px 0 rgba(98, 214, 234, .64) !important;
+}
+
+html.codeface main.main-surface:not(.codeface-home-shell) :is(.text-token-foreground, .text-token-text-primary) { color: #eff7fa !important; }
+html.codeface main.main-surface:not(.codeface-home-shell) :is(.text-token-text-secondary, .text-token-conversation-body) { color: #aebfcb !important; }
+html.codeface main.main-surface:not(.codeface-home-shell) :is(.text-token-description-foreground, .text-token-muted-foreground) { color: #8da2b3 !important; }
+
+html.codeface main.main-surface:not(.codeface-home-shell) .group\/turn-diff-header,
+html.codeface main.main-surface:not(.codeface-home-shell) [class*="turn-diff"] { color: #e2edf2 !important; }
+
+html.codeface main.main-surface:not(.codeface-home-shell) .bg-token-dropdown-background\/50 {
+  border: 1px solid rgba(126, 158, 181, .17) !important;
+  background: rgba(20, 40, 60, .92) !important;
+  box-shadow: 0 12px 28px rgba(2, 7, 16, .18) !important;
+}
+
+/* Home: retain the center tower; keep controls in a compact left operations rail. */
+html.codeface main.main-surface.codeface-home-shell,
+html.codeface[data-codeface-shell="light"] main.main-surface.codeface-home-shell {
+  background:
+    linear-gradient(180deg, rgba(4, 10, 18, .08), rgba(4, 10, 18, .32)),
+    var(--codeface-art) center 42% / cover no-repeat !important;
+  box-shadow: inset 0 1px rgba(161, 234, 243, .04), -8px 0 28px rgba(2, 7, 16, .3) !important;
+}
+
+html.codeface main.main-surface.codeface-home-shell::after,
+html.codeface[data-codeface-shell="light"] main.main-surface.codeface-home-shell::after {
+  background:
+    linear-gradient(90deg, rgba(5, 12, 22, .93) 0%, rgba(5, 12, 22, .76) 28%, rgba(5, 12, 22, .24) 47%, transparent 64%),
+    linear-gradient(0deg, rgba(5, 12, 22, .42), transparent 45%) !important;
+}
+
+html.codeface .codeface-home { --thread-content-max-width: min(100%, calc(100cqw - 44px)) !important; }
+html.codeface .codeface-home > div:first-child > div:first-child { flex-basis: 610px !important; min-height: 610px !important; }
+
+html.codeface .codeface-home > div:first-child > div:first-child > div:first-child {
+  width: calc(100% - 76px) !important;
+  height: 190px !important;
+  min-height: 190px !important;
+  margin-left: 38px !important;
+  margin-right: auto !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+html.codeface .codeface-home > div:first-child > div:first-child > div:first-child > div:first-child { padding-left: 0 !important; }
+html.codeface .codeface-home > div:first-child > div:first-child > div:first-child > div:first-child > div:first-child { width: 590px !important; }
+
+html.codeface .codeface-home [data-feature="game-source"] {
+  max-width: 590px !important;
+  color: #eff7fa !important;
+  font-size: clamp(23px, 1.8vw, 30px) !important;
+  line-height: 1.22 !important;
+  letter-spacing: -.025em !important;
+  text-shadow: 0 2px 18px rgba(2, 7, 16, .96) !important;
+}
+
+html.codeface .codeface-home [data-feature="game-source"]::before {
+  margin-bottom: 12px !important;
+  color: var(--sky-cyan) !important;
+  font-size: 11px !important;
+  letter-spacing: .12em !important;
+  text-shadow: 0 2px 14px rgba(2, 7, 16, .96) !important;
+}
+
+html.codeface .codeface-home [data-feature="game-source"]::after {
+  margin-top: 15px !important;
+  color: #aebfcb !important;
+  font-size: 13px !important;
+  text-shadow: 0 2px 14px rgba(2, 7, 16, .96) !important;
+}
+
+html.codeface .codeface-home [data-feature="game-source"] button {
+  border-color: rgba(98, 214, 234, .34) !important;
+  background: rgba(14, 28, 45, .9) !important;
+  color: #eff7fa !important;
+  box-shadow: none !important;
+}
+
+html.codeface .codeface-home > div:first-child > div:first-child > div:first-child > div:nth-child(2) {
+  left: 38px !important;
+  right: 38px !important;
+  top: 215px !important;
+  width: auto !important;
+}
+
+html.codeface .codeface-home .group\/home-suggestions:not(:has(.group\/home-suggestion-list-item)) > div { width: 100% !important; }
+html.codeface .codeface-home .group\/home-suggestions:not(:has(.group\/home-suggestion-list-item)) > div > div {
+  display: grid !important;
+  width: 480px !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+}
+
+html.codeface .codeface-home .group\/home-suggestions:not(:has(.group\/home-suggestion-list-item)) > div > div > * {
+  display: block !important;
+  min-width: 0 !important;
+}
+
+html.codeface .codeface-home .group\/home-suggestions:not(:has(.group\/home-suggestion-list-item)) > div > div > *:last-child:nth-child(odd) { grid-column: 1 / -1 !important; }
+
+html.codeface .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item),
+html.codeface[data-codeface-shell="light"] .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item) {
+  min-height: 100px !important;
+  padding: 13px 15px !important;
+  border-radius: 13px !important;
+  border-color: rgba(98, 214, 234, .17) !important;
+  background: rgba(10, 24, 39, .94) !important;
+  color: var(--sky-text) !important;
+  box-shadow: 0 10px 24px rgba(2, 7, 16, .3), inset 0 1px rgba(161, 234, 243, .035) !important;
+  backdrop-filter: blur(9px) saturate(103%) !important;
+}
+
+html.codeface .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item):hover {
+  border-color: rgba(98, 214, 234, .52) !important;
+  background: rgba(20, 45, 65, .96) !important;
+  box-shadow: 0 12px 26px rgba(2, 7, 16, .34), inset 3px 0 var(--sky-cyan) !important;
+  transform: translateY(-1px) !important;
+}
+
+html.codeface .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item):active {
+  border-color: var(--sky-coral) !important;
+  transform: scale(.985) !important;
+}
+
+html.codeface .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item) > span:first-child > span:first-child {
+  width: 32px !important;
+  height: 32px !important;
+  border: 0 !important;
+  border-radius: 9px !important;
+  background: var(--sky-cyan) !important;
+  box-shadow: none !important;
+}
+
+html.codeface .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item) svg { color: #07121d !important; }
+html.codeface .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item)::after {
+  color: #9aafc0 !important;
+  font-size: 12px !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+html.codeface .codeface-home div:has(> .horizontal-scroll-fade-mask .group\/project-selector),
+html.codeface[data-codeface-shell="light"] .codeface-home div:has(> .horizontal-scroll-fade-mask .group\/project-selector) {
+  width: 520px !important;
+  margin-left: 38px !important;
+  margin-right: auto !important;
+  padding: 29px 12px 9px !important;
+  border-radius: 13px !important;
+  border-color: rgba(98, 214, 234, .17) !important;
+  background: rgba(8, 20, 34, .95) !important;
+  box-shadow: 0 10px 26px rgba(2, 7, 16, .32) !important;
+  backdrop-filter: blur(9px) !important;
+}
+
+html.codeface .codeface-home div:has(> .horizontal-scroll-fade-mask .group\/project-selector)::before {
+  color: #7f95a7 !important;
+  font-size: 10px !important;
+  letter-spacing: .08em !important;
+}
+
+html.codeface .codeface-home .group\/project-selector > button,
+html.codeface[data-codeface-shell="light"] .codeface-home .group\/project-selector > button {
+  border-color: rgba(126, 158, 181, .22) !important;
+  background: rgba(20, 40, 60, .9) !important;
+  color: #dce8ed !important;
+}
+
+html.codeface .codeface-home .composer-surface-chrome {
+  width: 520px !important;
+  margin-left: 38px !important;
+  margin-right: auto !important;
+}
+
+html.codeface .composer-surface-chrome,
+html.codeface[data-codeface-shell="light"] .composer-surface-chrome {
+  color-scheme: dark !important;
+  border-color: rgba(98, 214, 234, .25) !important;
+  background: #0f1f31 !important;
+  color: var(--sky-text) !important;
+  box-shadow: 0 14px 34px rgba(2, 7, 16, .42), inset 0 1px rgba(161, 234, 243, .045) !important;
+  backdrop-filter: none !important;
+}
+
+html.codeface .composer-surface-chrome :is(button, span, div, textarea, [contenteditable="true"]) { color: var(--sky-text) !important; }
+html.codeface .composer-surface-chrome svg { color: var(--sky-muted) !important; }
+html.codeface .composer-surface-chrome:focus-within {
+  border-color: rgba(98, 214, 234, .7) !important;
+  box-shadow: 0 14px 34px rgba(2, 7, 16, .42), inset 3px 0 var(--sky-coral) !important;
+}
+
+html.codeface .ProseMirror { color: var(--sky-text) !important; caret-color: var(--sky-cyan) !important; }
+html.codeface .ProseMirror[data-placeholder]::before { color: #718697 !important; }
+
+html.codeface #codeface-chrome .codeface-quote,
+html.codeface #codeface-chrome .codeface-orbit,
+html.codeface #codeface-chrome .codeface-particles { display: none !important; }
+
+@media (max-width: 1040px) {
+  html.codeface .codeface-home > div:first-child > div:first-child > div:first-child,
+  html.codeface .codeface-home div:has(> .horizontal-scroll-fade-mask .group\/project-selector),
+  html.codeface .codeface-home .composer-surface-chrome {
+    width: min(520px, calc(100cqw - 56px)) !important;
+    margin-left: 28px !important;
+  }
+}
+
+@media (max-width: 680px) {
+  html.codeface main.main-surface.codeface-home-shell,
+  html.codeface[data-codeface-shell="light"] main.main-surface.codeface-home-shell { background-position: 58% center !important; }
+
+  html.codeface main.main-surface.codeface-home-shell::after,
+  html.codeface[data-codeface-shell="light"] main.main-surface.codeface-home-shell::after {
+    background: linear-gradient(0deg, rgba(5, 12, 22, .9), rgba(5, 12, 22, .24) 76%) !important;
+  }
+
+  html.codeface .codeface-home .group\/home-suggestions:not(:has(.group\/home-suggestion-list-item)) > div > div {
+    width: min(480px, calc(100cqw - 56px)) !important;
+    grid-template-columns: 1fr !important;
+  }
+}

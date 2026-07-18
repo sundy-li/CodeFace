@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 2,
+  "id": "cyberpunk",
+  "name": "Cyberpunk · Neon Skyline",
+  "brandSubtitle": "NEON CITY OPERATIONS",
+  "tagline": "接入夜城网络，让每一次创造穿越霓虹",
+  "projectPrefix": "当前节点 · ",
+  "projectLabel": "◉  选择工作区",
+  "statusText": "SYSTEM ONLINE",
+  "quote": "BUILD BEYOND THE GRID",
+  "suggestions": [],
+  "image": "background.png",
+  "layout": {
+    "heroFit": "none",
+    "heroPosition": "center center",
+    "backgroundPosition": "center 42%",
+    "taskOverlay": 0.35,
+    "sidebarWidth": 356,
+    "contentMaxWidth": 980,
+    "composerMaxWidth": 840,
+    "heroHeight": 220
+  },
+  "typography": {
+    "fontFamily": "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+    "monoFontFamily": "ui-monospace, SFMono-Regular, Menlo, monospace",
+    "fontSize": 14,
+    "lineHeight": 1.56
+  },
+  "geometry": {
+    "radiusXs": 4,
+    "radiusSm": 7,
+    "radiusMd": 11,
+    "radiusLg": 15,
+    "radiusXl": 20,
+    "borderWidth": 1,
+    "density": 1,
+    "uiScale": 1
+  },
+  "effects": {
+    "blur": 14,
+    "saturation": 1.04,
+    "shadowColor": "rgba(0, 8, 24, .62)",
+    "shadowStrength": 1,
+    "textureOpacity": 0.035,
+    "motionScale": 0.8
+  },
+  "chrome": {
+    "brand": true,
+    "status": true,
+    "quote": false,
+    "particles": false,
+    "orbit": false
+  },
+  "colors": {
+    "background": "#08121F",
+    "panel": "#0E1C2D",
+    "panelAlt": "#14283C",
+    "accent": "#62D6EA",
+    "accentAlt": "#A1EAF3",
+    "secondary": "#F48B74",
+    "highlight": "#C8F4F7",
+    "text": "#EFF7FA",
+    "muted": "#9AAFC0",
+    "line": "#315069"
+  }
+}

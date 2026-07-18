@@ -123,6 +123,9 @@ impl CodeFaceApp {
             theme_json_editor,
             css_editor,
         };
+        if let Err(error) = theme::install_bundled_themes() {
+            app.status = Self::error_message(app.locale(), &error);
+        }
         app.reload();
         app.applied = app.detect_applied_theme();
         app
@@ -284,11 +287,19 @@ impl CodeFaceApp {
     }
 
     fn begin_new_source(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let json = match theme::new_theme_json() {
+            Ok(json) => json,
+            Err(error) => {
+                self.status = Self::error_message(self.locale(), &error);
+                cx.notify();
+                return;
+            }
+        };
         self.editing_source = true;
         self.settings_open = false;
         self.editing_id = None;
         self.draft_image = None;
-        Self::set_editor_text(&self.theme_json_editor, theme::DEFAULT_JSON, window, cx);
+        Self::set_editor_text(&self.theme_json_editor, json, window, cx);
         Self::set_editor_text(&self.css_editor, theme::DEFAULT_CSS, window, cx);
         self.status = t(self.locale(), "new_source_ready").into();
         cx.notify();
@@ -529,8 +540,50 @@ impl CodeFaceApp {
 
     fn copy_context_prompt(&mut self, cx: &mut Context<Self>) {
         let Some(id) = self.editing_id.as_deref() else {
-            self.status = t(self.locale(), "select_theme").into();
+            if self.busy {
+                self.status = t(self.locale(), "busy").into();
+                cx.notify();
+                return;
+            }
+
+            let image = self.draft_image.clone();
+            let json = self.theme_json_editor.read(cx).value().to_string();
+            let css = self.css_editor.read(cx).value().to_string();
+            let chinese = self.locale() == Locale::SimplifiedChinese;
+            self.busy = true;
+            self.status = match self.locale() {
+                Locale::SimplifiedChinese => format!("正在{}…", t(self.locale(), "save")).into(),
+                Locale::English => format!("{}…", t(self.locale(), "save")).into(),
+            };
             cx.notify();
+
+            let executor = cx.background_executor().clone();
+            cx.spawn(async move |entity, cx| {
+                let result = executor
+                    .spawn(async move {
+                        let id = theme::save(&json, &css, image.as_deref(), None)?;
+                        let prompt = theme::context_prompt(&id, chinese)?;
+                        Ok::<_, anyhow::Error>((id, prompt))
+                    })
+                    .await;
+                let _ = entity.update(cx, move |app, cx| {
+                    app.busy = false;
+                    match result {
+                        Ok((id, prompt)) => {
+                            cx.write_to_clipboard(ClipboardItem::new_string(prompt));
+                            app.reload();
+                            app.selected = Some(id.clone());
+                            app.editing_id = Some(id);
+                            app.status = t(app.locale(), "prompt_copied").into();
+                        }
+                        Err(error) => {
+                            app.status = Self::error_message(app.locale(), &error);
+                        }
+                    }
+                    cx.notify();
+                });
+            })
+            .detach();
             return;
         };
         match theme::context_prompt(id, self.locale() == Locale::SimplifiedChinese) {

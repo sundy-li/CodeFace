@@ -2,9 +2,25 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
+<p align="center">
+  <img src="resources/app-icon/codeface-icon-1024.png" alt="CodeFace Logo" width="160">
+</p>
+
+
 CodeFace 是一个面向 Codex 桌面端的原生跨平台外观管理器。它使用 Rust 和 GPUI 构建，通过仅绑定本机回环地址的 Chrome DevTools Protocol（CDP）把主题 CSS 与必要的界面集成代码注入 Codex。
 
 CodeFace 不修改官方 Codex App、Windows 安装包、`app.asar`、代码签名、登录状态或 API 配置。关闭主题后，官方界面可以安全恢复。
+
+![CodeFace 应用主界面](resources/CodeFace.png)
+
+## 安装
+
+从 [GitHub Releases](https://github.com/sundy-li/CodeFace/releases/latest) 下载最新安装包：
+
+- **macOS 13 或更高版本：** 下载 `CodeFace-macOS.zip`，解压后将 `CodeFace.app` 移入“应用程序”。
+- **Windows：** 下载 `CodeFace-Windows.zip`，解压后运行 `CodeFace.exe`。
+
+当前发布包尚未经过 Apple 公证，也未使用商业代码签名证书。macOS 首次启动若被 Gatekeeper 拦截，请右键点击 `CodeFace.app`，选择“打开”并确认。请只从本仓库的 Releases 页面下载程序。
 
 ## 功能
 
@@ -91,6 +107,18 @@ background.png
 
 模板位于 [`resources/theme-pack-template`](resources/theme-pack-template)。主题列表中双击主题可以直接编辑源码。
 
+### 内置主题
+
+CodeFace 内置了 5 套可以直接使用的主题。完整主题源码位于 [`resources/theme-packs`](resources/theme-packs)，预览图统一收录在 [`resources/examples`](resources/examples)。
+
+| 主题 | 预览 | 说明 |
+| --- | --- | --- |
+| **Cyberpunk · Neon Skyline** | ![赛博朋克主题预览](resources/examples/theme-cyberpunk.png) | 深蓝色驾驶舱风格，搭配霓虹都市背景、青色网格以及粉色和琥珀色点缀。 |
+| **樊振东 · 冠军时刻** | ![樊振东主题预览](resources/examples/theme-fzd.png) | 以冠军时刻为灵感的克制暗色竞技场风格，使用冷蓝高光与聚焦人物的背景画面。 |
+| **Lovely Girl** | ![Lovely Girl 主题预览](resources/examples/theme-lovely-girl.png) | 由奶油色、旧纸色、玫瑰色和柔和玻璃质感构成的温暖编辑风格。 |
+| **Messi · World Champion** | ![梅西主题预览](resources/examples/theme-messi.png) | 采用阿根廷天蓝与奖杯金色的明亮纪念主题，搭配世界杯夺冠庆祝画面。 |
+| **QQ 2007** | ![QQ 2007 主题预览](resources/examples/theme-qq2007.png) | 怀旧的紧凑型桌面软件皮肤，包含亮面蓝色面板、立体控件和经典 QQ 风格布局。 |
+
 ## 数据目录
 
 - macOS：`~/Library/Application Support/CodeFace`
@@ -110,6 +138,8 @@ codeface --print-data-root
 ## 文档
 
 完整文档从 [`docs/README.md`](docs/README.md) 开始，包括用户指南、主题包格式、架构与安全模型、开发构建、CI 发布和故障排查。
+
+欢迎参与贡献。请先阅读 [`CONTRIBUTING.md`](CONTRIBUTING.md) 和 [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)；安全问题请按照 [`SECURITY.md`](SECURITY.md) 私下报告。
 
 ## 致谢
 

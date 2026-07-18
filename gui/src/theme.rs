@@ -1,5 +1,6 @@
 use crate::paths;
 use anyhow::{Context, Result, bail};
+use chrono::Local;
 use image::{DynamicImage, Rgba, RgbaImage};
 use serde_json::Value;
 use std::{
@@ -10,6 +11,36 @@ use std::{
 
 pub const DEFAULT_JSON: &str = include_str!("../../resources/theme-pack-template/theme.json");
 pub const DEFAULT_CSS: &str = include_str!("../../resources/theme-pack-template/codeface.css");
+
+fn new_theme_json_for_root(root: &Path, date: &str) -> Result<String> {
+    let mut version = 1_u32;
+    let id = loop {
+        let candidate = format!("theme-{date}-v{version}");
+        if !root.join(&candidate).exists() {
+            break candidate;
+        }
+        version += 1;
+    };
+    let mut value: Value = serde_json::from_str(DEFAULT_JSON)
+        .context("the default theme template is not valid JSON")?;
+    value["id"] = Value::String(id.clone());
+    value["name"] = Value::String(id);
+    Ok(format!("{}\n", serde_json::to_string_pretty(&value)?))
+}
+
+pub fn new_theme_json() -> Result<String> {
+    let root = paths::themes_root()?;
+    new_theme_json_for_root(&root, &Local::now().format("%Y%m%d").to_string())
+}
+struct BundledTheme {
+    id: &'static str,
+    json: &'static str,
+    css: &'static str,
+    background: &'static [u8],
+    avatar: Option<&'static [u8]>,
+}
+
+include!(concat!(env!("OUT_DIR"), "/bundled_themes.rs"));
 
 fn atomic_write(path: &Path, data: &[u8]) -> Result<()> {
     let parent = path
@@ -111,6 +142,37 @@ pub fn save(
     Ok(id)
 }
 
+/// Installs shipped themes once without overwriting user edits.
+pub fn install_bundled_themes() -> Result<()> {
+    install_bundled_themes_into(&paths::themes_root()?)
+}
+
+fn install_bundled_themes_into(themes_root: &Path) -> Result<()> {
+    for theme in BUNDLED_THEMES {
+        let root = themes_root.join(theme.id);
+        if root.exists() {
+            continue;
+        }
+        fs::create_dir_all(&root)?;
+        let mut value = validate_json(theme.json)?;
+        value["id"] = Value::String(theme.id.into());
+        value["image"] = Value::String("background.png".into());
+        if theme.avatar.is_some() {
+            value["avatar"] = Value::String("avatar.png".into());
+        }
+        atomic_write(
+            &root.join("theme.json"),
+            format!("{}\n", serde_json::to_string_pretty(&value)?).as_bytes(),
+        )?;
+        atomic_write(&root.join("codeface.css"), theme.css.as_bytes())?;
+        atomic_write(&root.join("background.png"), theme.background)?;
+        if let Some(avatar) = theme.avatar {
+            atomic_write(&root.join("avatar.png"), avatar)?;
+        }
+    }
+    Ok(())
+}
+
 pub fn import_directory(source: &Path) -> Result<String> {
     let json = fs::read_to_string(source.join("theme.json"))
         .context("theme pack is missing theme.json")?;
@@ -125,7 +187,22 @@ pub fn import_directory(source: &Path) -> Result<String> {
     if !image.is_file() {
         bail!("theme pack background image does not exist: {image_name}");
     }
-    save(&json, &css, Some(&image), None)
+    let id = save(&json, &css, Some(&image), None)?;
+    if let Some(avatar_name) = value.get("avatar").and_then(Value::as_str) {
+        let avatar = source.join(avatar_name);
+        if !avatar.is_file() {
+            bail!("theme pack avatar image does not exist: {avatar_name}");
+        }
+        fs::copy(avatar, paths::themes_root()?.join(&id).join("avatar.png"))?;
+        let manifest_path = paths::themes_root()?.join(&id).join("theme.json");
+        let mut manifest: Value = serde_json::from_str(&fs::read_to_string(&manifest_path)?)?;
+        manifest["avatar"] = Value::String("avatar.png".into());
+        atomic_write(
+            &manifest_path,
+            format!("{}\n", serde_json::to_string_pretty(&manifest)?).as_bytes(),
+        )?;
+    }
+    Ok(id)
 }
 
 pub fn activate(id: &str) -> Result<PathBuf> {
@@ -143,8 +220,17 @@ pub fn activate(id: &str) -> Result<PathBuf> {
             fs::remove_file(entry.path())?;
         }
     }
-    for name in ["theme.json", "codeface.css", "background.png"] {
-        fs::copy(source.join(name), target.join(name))
+    let manifest: Value = serde_json::from_str(&fs::read_to_string(source.join("theme.json"))?)?;
+    let mut names = vec![
+        "theme.json".to_owned(),
+        "codeface.css".to_owned(),
+        "background.png".to_owned(),
+    ];
+    if let Some(avatar) = manifest.get("avatar").and_then(Value::as_str) {
+        names.push(avatar.to_owned());
+    }
+    for name in names {
+        fs::copy(source.join(&name), target.join(&name))
             .with_context(|| format!("failed to copy theme file {name}"))?;
     }
     Ok(target)
@@ -325,6 +411,56 @@ mod tests {
     }
 
     #[test]
+    fn installs_all_bundled_themes_without_overwriting_edits() {
+        let root = std::env::temp_dir().join(format!(
+            "codeface-bundled-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("clock")
+                .as_nanos()
+        ));
+        install_bundled_themes_into(&root).expect("install bundled theme");
+        assert!(!BUNDLED_THEMES.is_empty());
+        for theme in BUNDLED_THEMES {
+            let theme_root = root.join(theme.id);
+            let json: Value = serde_json::from_str(
+                &fs::read_to_string(theme_root.join("theme.json")).expect("read manifest"),
+            )
+            .expect("parse manifest");
+            assert_eq!(json["id"], theme.id);
+            assert_eq!(json["image"], "background.png");
+            assert_eq!(
+                json["suggestions"].as_array().map(Vec::len),
+                Some(0),
+                "bundled themes should not render home suggestions"
+            );
+            assert!(
+                !json["name"]
+                    .as_str()
+                    .expect("theme name")
+                    .to_ascii_lowercase()
+                    .starts_with("todo")
+            );
+            assert!(theme_root.join("codeface.css").is_file());
+            image::open(theme_root.join("background.png")).expect("decode background");
+            if theme.avatar.is_some() {
+                assert_eq!(json["avatar"], "avatar.png");
+                image::open(theme_root.join("avatar.png")).expect("decode avatar");
+            }
+        }
+
+        let theme_root = root.join(BUNDLED_THEMES[0].id);
+        fs::write(theme_root.join("codeface.css"), "/* user edit */").expect("edit theme");
+        install_bundled_themes_into(&root).expect("second install");
+        assert_eq!(
+            fs::read_to_string(theme_root.join("codeface.css")).expect("read edit"),
+            "/* user edit */"
+        );
+        fs::remove_dir_all(root).expect("remove test root");
+    }
+
+    #[test]
     fn context_prompt_contains_complete_editable_context() {
         let root = std::env::temp_dir().join(format!("codeface-prompt-{}", std::process::id()));
         fs::create_dir_all(&root).expect("create theme");
@@ -350,6 +486,26 @@ mod tests {
         assert!(chinese_prompt.contains("聊天/任务页面"));
         assert!(chinese_prompt.contains("不要修改 CodeFace 源码"));
         fs::remove_dir_all(root).expect("remove theme");
+    }
+
+    #[test]
+    fn new_theme_name_uses_date_and_next_available_version() {
+        let root = std::env::temp_dir().join(format!(
+            "codeface-new-theme-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("clock")
+                .as_nanos()
+        ));
+        fs::create_dir_all(root.join("theme-20260719-v1")).expect("create existing theme");
+
+        let json = new_theme_json_for_root(&root, "20260719").expect("generate theme JSON");
+        let value: Value = serde_json::from_str(&json).expect("parse generated JSON");
+        assert_eq!(value["id"], "theme-20260719-v2");
+        assert_eq!(value["name"], "theme-20260719-v2");
+
+        fs::remove_dir_all(root).expect("remove test root");
     }
 
     #[test]

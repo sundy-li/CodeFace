@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "my-editable-theme",
   "name": "我的可编辑主题",
   "brandSubtitle": "A WARM SPACE TO CREATE",
@@ -19,7 +19,42 @@
     "heroFit": "none",
     "heroPosition": "center center",
     "backgroundPosition": "center 35%",
-    "taskOverlay": 0.42
+    "taskOverlay": 0.42,
+    "sidebarWidth": 260,
+    "contentMaxWidth": 960,
+    "composerMaxWidth": 820,
+    "heroHeight": 252
+  },
+  "typography": {
+    "fontFamily": "system-ui, -apple-system, sans-serif",
+    "monoFontFamily": "ui-monospace, SFMono-Regular, monospace",
+    "fontSize": 14,
+    "lineHeight": 1.5
+  },
+  "geometry": {
+    "radiusXs": 4,
+    "radiusSm": 8,
+    "radiusMd": 12,
+    "radiusLg": 18,
+    "radiusXl": 24,
+    "borderWidth": 1,
+    "density": 1,
+    "uiScale": 1
+  },
+  "effects": {
+    "blur": 18,
+    "saturation": 1.08,
+    "shadowColor": "rgba(70, 42, 52, .18)",
+    "shadowStrength": 1,
+    "textureOpacity": 0.08,
+    "motionScale": 1
+  },
+  "chrome": {
+    "brand": true,
+    "status": true,
+    "quote": false,
+    "particles": false,
+    "orbit": false
   },
   "colors": {
     "background": "#F7F1E8",

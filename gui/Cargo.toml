@@ -8,6 +8,7 @@ license = "MIT"
 [dependencies]
 anyhow = "1"
 base64 = "0.22"
+chrono = "0.4"
 gpui = "0.2.2"
 gpui-component = { version = "0.5.1", features = ["tree-sitter-languages"] }
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
@@ -28,4 +29,5 @@ windows-sys = { version = "0.59", features = [
 ] }
 
 [build-dependencies]
+serde_json = "1"
 winresource = "0.1"

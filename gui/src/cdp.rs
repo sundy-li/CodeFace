@@ -26,7 +26,7 @@ const VERIFY_INTERVAL: Duration = Duration::from_secs(2);
 #[derive(Debug)]
 struct ThemeSnapshot {
     fingerprint: u64,
-    image_name: String,
+    asset_names: Vec<String>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -100,6 +100,23 @@ fn art_data_url(theme_root: &Path, theme: &Value) -> Result<String> {
     Ok(format!("data:image/png;base64,{}", STANDARD.encode(bytes)))
 }
 
+fn optional_asset_data_url(theme_root: &Path, theme: &Value, field: &str) -> Result<String> {
+    let Some(name) = theme.get(field).and_then(Value::as_str) else {
+        return Ok(String::new());
+    };
+    let path = Path::new(name);
+    if path.file_name().and_then(|value| value.to_str()) != Some(name) {
+        bail!("theme {field} must be a file in the theme directory");
+    }
+    let bytes = fs::read(theme_root.join(name))
+        .with_context(|| format!("failed to read theme {field} image"))?;
+    if bytes.len() > 4 * 1024 * 1024 {
+        bail!("theme {field} image cannot exceed 4 MiB");
+    }
+    image::load_from_memory(&bytes).with_context(|| format!("failed to decode theme {field}"))?;
+    Ok(format!("data:image/png;base64,{}", STANDARD.encode(bytes)))
+}
+
 fn payload(theme_root: &Path) -> Result<String> {
     let theme_text = fs::read_to_string(theme_root.join("theme.json"))?;
     let theme: Value = serde_json::from_str(&theme_text)?;
@@ -135,6 +152,10 @@ fn payload(theme_root: &Path) -> Result<String> {
             "__CODEFACE_ART_JSON__",
             &serde_json::to_string(&art_data_url(theme_root, &theme)?)?,
         )
+        .replace(
+            "__CODEFACE_AVATAR_JSON__",
+            &serde_json::to_string(&optional_asset_data_url(theme_root, &theme, "avatar")?)?,
+        )
         .replace("__CODEFACE_THEME_JSON__", &theme_text))
 }
 
@@ -145,25 +166,29 @@ fn theme_snapshot(theme_root: &Path) -> Result<ThemeSnapshot> {
         .get("image")
         .and_then(Value::as_str)
         .unwrap_or("background.png");
-    let image_path = Path::new(image_name);
-    if image_path.file_name().and_then(|name| name.to_str()) != Some(image_name) {
-        bail!("theme image must be a file in the theme directory");
+    let mut asset_names = vec![image_name.to_owned()];
+    if let Some(avatar) = theme.get("avatar").and_then(Value::as_str) {
+        asset_names.push(avatar.to_owned());
+    }
+    for name in &asset_names {
+        let path = Path::new(name);
+        if path.file_name().and_then(|value| value.to_str()) != Some(name.as_str()) {
+            bail!("theme assets must be files in the theme directory");
+        }
     }
     let css = fs::read_to_string(theme_root.join("codeface.css"))?;
-    let image = fs::read(theme_root.join(image_name))?;
-    if image.len() > 16 * 1024 * 1024 {
-        bail!("background image cannot exceed 16 MiB");
-    }
-    image::load_from_memory(&image).context("failed to decode theme background image")?;
     payload(theme_root)?;
 
     let mut hasher = DefaultHasher::new();
     theme_text.hash(&mut hasher);
     css.hash(&mut hasher);
-    image.hash(&mut hasher);
+    for name in &asset_names {
+        name.hash(&mut hasher);
+        fs::read(theme_root.join(name))?.hash(&mut hasher);
+    }
     Ok(ThemeSnapshot {
         fingerprint: hasher.finish(),
-        image_name: image_name.to_owned(),
+        asset_names,
     })
 }
 
@@ -194,10 +219,9 @@ fn sync_active_theme(source: &Path, active: &Path, snapshot: &ThemeSnapshot) -> 
         return Ok(());
     }
     fs::create_dir_all(active)?;
-    atomic_copy(
-        &source.join(&snapshot.image_name),
-        &active.join(&snapshot.image_name),
-    )?;
+    for name in &snapshot.asset_names {
+        atomic_copy(&source.join(name), &active.join(name))?;
+    }
     atomic_copy(&source.join("codeface.css"), &active.join("codeface.css"))?;
     // Commit the manifest last so readers never observe references to files
     // that have not finished syncing yet.
@@ -234,6 +258,9 @@ fn evaluate(target: &Target, expression: &str) -> Result<Value> {
             if response.get("id") == Some(&Value::from(1)) {
                 if let Some(error) = response.get("error") {
                     bail!("CDP execution failed: {error}");
+                }
+                if let Some(exception) = response.pointer("/result/exceptionDetails") {
+                    bail!("CDP JavaScript exception: {exception}");
                 }
                 return Ok(response
                     .pointer("/result/result/value")

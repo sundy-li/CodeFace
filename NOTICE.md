@@ -13,9 +13,9 @@ It does **not** grant rights to:
 - Any user-supplied images or third-party artwork you drop into a theme
 - Character likenesses, franchise art, or celebrity imagery
 
-## Demo artwork
+## Theme artwork
 
-Theme images are user-provided and are not bundled into the native executable.
+The built-in theme artwork is bundled into the native executable. The MIT License applies to CodeFace's source code and original project assets only; it does not grant trademark, publicity, or copyright rights in third-party names, likenesses, brands, or artwork depicted by a theme. Contributors must have permission to redistribute every asset they submit. User-imported theme images remain the responsibility of the user.
 
 ## Runtime
 

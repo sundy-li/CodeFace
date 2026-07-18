@@ -1,0 +1,790 @@
+/* Meixi Campeon — visual overrides only. Native layout and controls stay intact. */
+
+html.codeface {
+  --mx-canvas: #eaf2f6;
+  --mx-panel: #f8fbfd;
+  --mx-panel-2: #dceaf1;
+  --mx-ink: #172733;
+  --mx-muted: #5b6c78;
+  --mx-sky: #4a9cc3;
+  --mx-sky-deep: #216f96;
+  --mx-gold: #8a5b16;
+  --mx-gold-soft: #e8c77c;
+  --mx-line: rgb(22 75 109 / 16%);
+  --mx-shadow: rgb(23 39 51 / 13%);
+  --mx-ease: cubic-bezier(.2, .8, .2, 1);
+  color-scheme: light;
+}
+
+html.codeface body {
+  background: linear-gradient(145deg, #f7fafc, var(--mx-canvas) 58%, #dceaf1) !important;
+  color: var(--mx-ink) !important;
+}
+
+html.codeface body::before {
+  opacity: .1 !important;
+  background-image: radial-gradient(circle, rgb(33 111 150 / 25%) 0 1px, transparent 1.5px) !important;
+  background-size: 76px 76px !important;
+  pointer-events: none !important;
+}
+
+html.codeface #codeface-chrome,
+html.codeface #codeface-chrome::before,
+html.codeface #codeface-chrome::after,
+html.codeface .codeface-particles,
+html.codeface .codeface-orbit,
+html.codeface .codeface-quote {
+  pointer-events: none !important;
+}
+
+/* Sidebar */
+html.codeface aside.app-shell-left-panel {
+  border-color: var(--mx-line) !important;
+  border-left: 0 !important;
+  background: linear-gradient(180deg, #f8fbfd, #edf4f7 58%, #e2edf2) !important;
+  color: var(--mx-ink) !important;
+  box-shadow: 9px 0 26px rgb(23 39 51 / 8%), inset -1px 0 #fff !important;
+  backdrop-filter: none !important;
+}
+
+html.codeface aside.app-shell-left-panel nav { background: transparent !important; }
+
+html.codeface aside.app-shell-left-panel button,
+html.codeface aside.app-shell-left-panel a {
+  color: #405563 !important;
+  border-color: transparent !important;
+  transition: color 150ms var(--mx-ease), background-color 150ms var(--mx-ease),
+    box-shadow 150ms var(--mx-ease), transform 100ms ease-out !important;
+}
+
+html.codeface aside.app-shell-left-panel svg { color: #587180 !important; }
+
+html.codeface aside.app-shell-left-panel button:hover,
+html.codeface aside.app-shell-left-panel a:hover {
+  background: rgb(74 156 195 / 10%) !important;
+  color: #123b54 !important;
+  box-shadow: inset 0 0 0 1px rgb(74 156 195 / 12%) !important;
+  transform: none !important;
+}
+
+html.codeface aside.app-shell-left-panel button:active,
+html.codeface aside.app-shell-left-panel a:active {
+  background: rgb(180 122 32 / 12%) !important;
+  transform: scale(.985) !important;
+}
+
+html.codeface aside.app-shell-left-panel [class~="bg-token-list-hover-background"],
+html.codeface aside.app-shell-left-panel [aria-current="page"] {
+  border: 1px solid rgb(180 122 32 / 24%) !important;
+  background: linear-gradient(90deg, rgb(232 199 124 / 24%), rgb(74 156 195 / 8%)) !important;
+  color: var(--mx-ink) !important;
+  box-shadow: inset 3px 0 var(--mx-gold), 0 4px 12px rgb(23 39 51 / 7%) !important;
+}
+
+/* Home: keep the photograph crisp and remove the safe skin's banner treatment. */
+html.codeface main.main-surface.codeface-home-shell {
+  border-color: transparent !important;
+  border-radius: 14px 0 0 0 !important;
+  box-shadow: none !important;
+  background-blend-mode: multiply, normal !important;
+}
+
+html.codeface .codeface-home > div:first-child > div:first-child > div:first-child {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+/* Remove the 15px top gutter whose edge reads as a bright horizontal stripe. */
+html.codeface .codeface-home > div:first-child {
+  padding-top: 0 !important;
+}
+
+html.codeface .codeface-home > div:first-child > div:first-child > div:first-child::before,
+html.codeface .codeface-home > div:first-child > div:first-child > div:first-child::after {
+  content: none !important;
+  display: none !important;
+  background: none !important;
+  box-shadow: none !important;
+}
+
+html.codeface[data-codeface-hero-fit="none"] .codeface-home [data-feature="game-source"] {
+  color: #f8fbfd !important;
+  text-shadow: 0 2px 4px rgb(0 5 14 / 82%), 0 8px 26px rgb(0 5 14 / 72%) !important;
+}
+
+html.codeface[data-codeface-hero-fit="none"] .codeface-home [data-feature="game-source"]::before {
+  color: #f1cf7e !important;
+  text-shadow: 0 2px 10px rgb(0 5 14 / 86%) !important;
+}
+
+html.codeface[data-codeface-hero-fit="none"] .codeface-home [data-feature="game-source"]::after {
+  color: #eef6fa !important;
+  text-shadow: 0 2px 8px rgb(0 5 14 / 90%) !important;
+}
+
+html.codeface .codeface-home [data-feature="game-source"] button {
+  border-color: rgb(232 199 124 / 68%) !important;
+  border-radius: 999px !important;
+  background: rgb(10 24 38 / 88%) !important;
+  color: #f1cf7e !important;
+  text-shadow: none !important;
+  box-shadow: 0 6px 18px rgb(0 5 14 / 34%) !important;
+}
+
+html.codeface .codeface-home [data-feature="game-source"] button:hover {
+  border-color: #f1cf7e !important;
+  background: rgb(35 49 54 / 94%) !important;
+  color: #fff4d6 !important;
+}
+
+/* Suggestions: style native buttons without changing their layout or children. */
+html.codeface .codeface-home .group\/home-suggestions {
+  border-color: rgb(255 255 255 / 52%) !important;
+  background: rgb(248 251 253 / 94%) !important;
+  color: var(--mx-ink) !important;
+  box-shadow: 0 14px 34px rgb(3 10 20 / 24%) !important;
+  backdrop-filter: blur(18px) saturate(108%) !important;
+}
+
+/* Keep suggestions above the native project toolbar and composer. */
+html.codeface .codeface-home > div:first-child > div:first-child > div:first-child > div:nth-child(2) {
+  top: max(300px, calc(100cqh - 470px)) !important;
+}
+
+html.codeface .codeface-home .group\/home-suggestions button {
+  border-color: rgb(22 75 109 / 18%) !important;
+  background: linear-gradient(145deg, rgb(255 255 255 / 96%), rgb(235 243 247 / 94%)) !important;
+  color: var(--mx-ink) !important;
+  box-shadow: 0 7px 18px rgb(3 10 20 / 13%), inset 0 1px #fff !important;
+  transition: border-color 170ms var(--mx-ease), box-shadow 170ms var(--mx-ease),
+    background-color 170ms var(--mx-ease), transform 170ms var(--mx-ease) !important;
+}
+
+html.codeface .codeface-home .group\/home-suggestions button:hover {
+  border-color: rgb(180 122 32 / 52%) !important;
+  background: linear-gradient(145deg, #fff, #f4ead1) !important;
+  box-shadow: 0 10px 24px rgb(3 10 20 / 17%) !important;
+  transform: translateY(-1px) !important;
+}
+
+html.codeface .codeface-home .group\/home-suggestions button:active {
+  background: #ecd9aa !important;
+  transform: scale(.985) !important;
+}
+
+html.codeface .codeface-home .group\/home-suggestions button::after,
+html.codeface .codeface-home .group\/home-suggestions button > span {
+  color: var(--mx-ink) !important;
+  opacity: 1 !important;
+}
+
+html.codeface .codeface-home .group\/home-suggestions button > span:last-child {
+  display: block !important;
+  visibility: visible !important;
+}
+
+html.codeface .codeface-home .group\/home-suggestions svg { color: #17364b !important; }
+
+html.codeface .codeface-home .group\/home-suggestions button > span:first-child > span:first-child {
+  border-color: rgb(180 122 32 / 28%) !important;
+  background: linear-gradient(145deg, #f1cf7e, #d79a35) !important;
+  color: #17364b !important;
+  box-shadow: 0 5px 13px rgb(180 122 32 / 22%) !important;
+}
+
+/* This theme intentionally declares `suggestions: []`. CodeFace currently
+   treats an empty list as "use native defaults", so hide that native region
+   and its positioning wrapper without affecting the project bar or composer. */
+html.codeface .codeface-home .group\/home-suggestions,
+html.codeface .codeface-home div:has(> div > .group\/home-suggestions) {
+  display: none !important;
+}
+
+/* Project toolbar */
+html.codeface .codeface-home div:has(> .horizontal-scroll-fade-mask .group\/project-selector) {
+  border-color: rgb(255 255 255 / 58%) !important;
+  background: rgb(248 251 253 / 94%) !important;
+  box-shadow: 0 11px 28px rgb(3 10 20 / 21%) !important;
+  backdrop-filter: blur(18px) saturate(108%) !important;
+}
+
+html.codeface .codeface-home div:has(> .horizontal-scroll-fade-mask .group\/project-selector)::before {
+  color: #8a5b16 !important;
+}
+
+html.codeface .codeface-home .group\/project-selector > button {
+  border-color: var(--mx-line) !important;
+  background: rgb(255 255 255 / 88%) !important;
+  color: var(--mx-ink) !important;
+  box-shadow: none !important;
+}
+
+html.codeface .codeface-home .group\/project-selector > button:hover {
+  border-color: rgb(180 122 32 / 44%) !important;
+  background: #f7edda !important;
+}
+
+/* Task and chat routes: quiet canvas, native content remains high contrast. */
+html.codeface main.main-surface:not(.codeface-home-shell) {
+  border-color: var(--mx-line) !important;
+  background: radial-gradient(circle at 86% 3%, rgb(74 156 195 / 8%), transparent 34%),
+    linear-gradient(155deg, #f8fbfd, #edf4f7 60%, #e2edf2) !important;
+  color: var(--mx-ink) !important;
+  box-shadow: inset 0 1px #fff, -8px 0 24px rgb(23 39 51 / 7%) !important;
+}
+
+html.codeface main.main-surface:not(.codeface-home-shell) > header.app-header-tint {
+  border-bottom-color: var(--mx-line) !important;
+  background: rgb(248 251 253 / 90%) !important;
+  color: var(--mx-ink) !important;
+  box-shadow: 0 5px 16px rgb(23 39 51 / 6%) !important;
+  backdrop-filter: blur(16px) saturate(106%) !important;
+}
+
+html.codeface main.main-surface:not(.codeface-home-shell) article {
+  border-color: rgb(22 75 109 / 11%) !important;
+  background: rgb(255 255 255 / 78%) !important;
+  color: var(--mx-ink) !important;
+  box-shadow: 0 6px 18px rgb(23 39 51 / 6%) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+html.codeface main.main-surface:not(.codeface-home-shell) [data-message-author-role="user"] {
+  border-color: rgb(74 156 195 / 24%) !important;
+  background: linear-gradient(135deg, #e1f1f8, #edf5f8) !important;
+}
+
+html.codeface main.main-surface:not(.codeface-home-shell) article a {
+  color: #146d98 !important;
+  text-decoration-color: rgb(20 109 152 / 44%) !important;
+  text-underline-offset: 3px !important;
+}
+
+html.codeface main.main-surface:not(.codeface-home-shell) article a:hover { color: #875915 !important; }
+
+html.codeface main.main-surface:not(.codeface-home-shell) pre {
+  border-color: var(--mx-line) !important;
+  background: #f1f6f8 !important;
+  color: var(--mx-ink) !important;
+  box-shadow: inset 0 1px #fff !important;
+}
+
+html.codeface main.main-surface:not(.codeface-home-shell) blockquote {
+  border-color: var(--mx-gold) !important;
+  color: #405563 !important;
+}
+
+/* Composer */
+html.codeface .composer-surface-chrome {
+  border-color: rgb(22 75 109 / 18%) !important;
+  background: rgb(255 255 255 / 95%) !important;
+  color: var(--mx-ink) !important;
+  box-shadow: 0 15px 38px rgb(23 39 51 / 14%), inset 0 1px #fff !important;
+  backdrop-filter: blur(18px) saturate(106%) !important;
+  transition: border-color 160ms var(--mx-ease), box-shadow 160ms var(--mx-ease) !important;
+}
+
+html.codeface .composer-surface-chrome::before {
+  content: none !important;
+  display: none !important;
+  pointer-events: none !important;
+}
+
+html.codeface .composer-surface-chrome:focus-within {
+  border-color: rgb(180 122 32 / 56%) !important;
+  box-shadow: 0 15px 38px rgb(23 39 51 / 15%), 0 0 0 3px rgb(180 122 32 / 9%) !important;
+}
+
+html.codeface .composer-surface-chrome textarea,
+html.codeface .composer-surface-chrome [contenteditable="true"] {
+  color: var(--mx-ink) !important;
+  caret-color: #986315 !important;
+}
+
+html.codeface .composer-surface-chrome textarea::placeholder { color: #73838e !important; opacity: 1 !important; }
+html.codeface .composer-surface-chrome button:hover { background: rgb(74 156 195 / 10%) !important; }
+html.codeface .composer-surface-chrome button:active { background: rgb(180 122 32 / 12%) !important; transform: scale(.96) !important; }
+
+/* Interaction and accessibility */
+html.codeface :where(button, a, input, textarea, [contenteditable="true"], [tabindex]):focus-visible {
+  outline: 3px solid rgb(180 122 32 / 62%) !important;
+  outline-offset: 2px !important;
+}
+
+html.codeface ::selection { background: rgb(232 199 124 / 48%) !important; color: #172733 !important; }
+html.codeface * { scrollbar-color: rgb(74 156 195 / 32%) transparent; }
+
+@media (prefers-reduced-motion: reduce) {
+  html.codeface *, html.codeface *::before, html.codeface *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+
+  html.codeface button, html.codeface a { transform: none !important; }
+}
+
+@media (max-height: 760px) {
+  html.codeface .codeface-home > div:first-child > div:first-child > div:first-child > div:nth-child(2) {
+    top: max(270px, calc(100cqh - 440px)) !important;
+  }
+
+  html.codeface .codeface-home .group\/home-suggestions button {
+    min-height: 96px !important;
+    padding-block: 10px !important;
+  }
+}
+
+/* ========================================================================
+   Champion UX refinement: subject-safe home + complete semantic light theme
+   ======================================================================== */
+
+html.codeface,
+html.codeface[data-codeface-shell="dark"],
+html.codeface[data-codeface-shell="light"] {
+  color-scheme: light !important;
+  --mx-canvas: #eaf2f6;
+  --mx-panel: #f8fbfd;
+  --mx-panel-2: #dceaf1;
+  --mx-ink: #172733;
+  --mx-muted: #5b6c78;
+  --mx-sky: #4a9cc3;
+  --mx-gold: #b47a20;
+  --mx-gold-soft: #e8c77c;
+  --mx-line: rgba(22, 75, 109, .16);
+  --cf-bg: var(--mx-canvas) !important;
+  --cf-panel: var(--mx-panel) !important;
+  --cf-panel-2: var(--mx-panel-2) !important;
+  --cf-text: var(--mx-ink) !important;
+  --cf-muted: var(--mx-muted) !important;
+  --cf-line: #b8cbd5 !important;
+}
+
+html.codeface body,
+html.codeface[data-codeface-shell="dark"] body,
+html.codeface[data-codeface-shell="light"] body {
+  background:
+    radial-gradient(circle at 84% 4%, rgba(74, 156, 195, .09), transparent 30%),
+    linear-gradient(145deg, #f8fbfd, #eaf2f6 58%, #dceaf1) !important;
+  color: var(--mx-ink) !important;
+}
+
+html.codeface body::before {
+  opacity: .08 !important;
+  background-image: radial-gradient(circle, rgba(33, 111, 150, .22) 0 1px, transparent 1.6px) !important;
+  background-size: 82px 82px !important;
+  mask-image: linear-gradient(to bottom, black, transparent 72%) !important;
+  pointer-events: none !important;
+}
+
+/* Sidebar remains natively resizable; no width or min-width overrides. */
+html.codeface aside.app-shell-left-panel,
+html.codeface[data-codeface-shell="dark"] aside.app-shell-left-panel,
+html.codeface[data-codeface-shell="light"] aside.app-shell-left-panel {
+  border-color: var(--mx-line) !important;
+  background: linear-gradient(180deg, #f8fbfd, #edf4f7 58%, #e2edf2) !important;
+  color: var(--mx-ink) !important;
+  box-shadow: 8px 0 24px rgba(23, 39, 51, .07), inset -1px 0 #fff !important;
+  backdrop-filter: none !important;
+}
+
+html.codeface aside.app-shell-left-panel :is(button, a, span, div) { color: var(--mx-ink) !important; }
+html.codeface aside.app-shell-left-panel svg { color: #587180 !important; }
+
+html.codeface aside.app-shell-left-panel :is(button, a):hover {
+  border-color: transparent !important;
+  background: rgba(74, 156, 195, .09) !important;
+  color: #123b54 !important;
+  box-shadow: inset 0 0 0 1px rgba(74, 156, 195, .12) !important;
+  transform: none !important;
+}
+
+html.codeface aside.app-shell-left-panel :is(button, a):active {
+  background: rgba(180, 122, 32, .1) !important;
+  transform: scale(.985) !important;
+}
+
+html.codeface aside.app-shell-left-panel :is([class~="bg-token-list-hover-background"], [aria-current="page"]) {
+  border-color: rgba(180, 122, 32, .22) !important;
+  background: linear-gradient(90deg, rgba(232, 199, 124, .22), rgba(74, 156, 195, .07)) !important;
+  color: var(--mx-ink) !important;
+  box-shadow: inset 3px 0 var(--mx-gold) !important;
+}
+
+html.codeface :is(button, a, input, textarea, [role="button"], [contenteditable="true"]):focus-visible {
+  outline: 2px solid var(--mx-gold) !important;
+  outline-offset: 2px !important;
+  box-shadow: none !important;
+}
+
+/* Route-scoped Codex semantic tokens keep every foreground synchronized. */
+html.codeface main.main-surface {
+  --color-token-foreground: #172733;
+  --color-token-text-primary: #172733;
+  --color-token-text-secondary: #405563;
+  --color-token-text-tertiary: #687c88;
+  --color-token-description-foreground: #667985;
+  --color-token-conversation-body: #405563;
+  --color-token-conversation-header: #71828c;
+  --color-token-conversation-summary-leading: #5b6c78;
+  --color-token-conversation-summary-trailing: #71828c;
+  --color-token-non-assistant-body-descendant: #405563;
+  --color-token-icon-foreground: #405563;
+  --color-token-disabled-foreground: #8b9aa3;
+  --color-token-border: rgba(22, 75, 109, .14);
+  --color-token-border-default: rgba(22, 75, 109, .14);
+  --color-token-border-light: rgba(22, 75, 109, .08);
+  --color-token-border-heavy: rgba(22, 75, 109, .22);
+  --color-token-bg-primary: #eaf2f6;
+  --color-token-bg-secondary: #edf4f7;
+  --color-token-bg-tertiary: #dceaf1;
+  --color-token-bg-fog: rgba(74, 156, 195, .05);
+  --color-token-main-surface-primary: #eaf2f6;
+  --color-token-dropdown-background: #f8fbfd;
+  --color-token-dropdown-foreground: #172733;
+  --color-token-menu-background: rgba(248, 251, 253, .98);
+  --color-token-menu-border: rgba(22, 75, 109, .15);
+  --color-token-input-background: #ffffff;
+  --color-token-input-foreground: #172733;
+  --color-token-input-placeholder-foreground: #73838e;
+  --color-token-input-border: rgba(22, 75, 109, .18);
+  --color-token-list-hover-background: rgba(74, 156, 195, .08);
+  --color-token-list-active-selection-background: rgba(232, 199, 124, .2);
+  --color-token-list-active-selection-foreground: #172733;
+  --color-token-list-active-selection-icon-foreground: #8a5b16;
+  --color-token-toolbar-hover-background: rgba(74, 156, 195, .08);
+  --color-token-button-secondary-hover-background: rgba(74, 156, 195, .08);
+  --color-token-badge-background: rgba(74, 156, 195, .09);
+  --color-token-badge-foreground: #405563;
+  --color-token-focus-border: #b47a20;
+  --color-token-primary: #b47a20;
+  --color-token-link: #146d98;
+  --color-token-text-link-foreground: #146d98;
+  --color-token-text-link-active-foreground: #875915;
+  --color-token-diff-surface: #edf4f7;
+  --color-token-text-preformat-background: #f1f6f8;
+  --color-token-text-preformat-foreground: #172733;
+  --color-token-text-code-block-background: rgba(22, 75, 109, .055);
+  --color-token-button-background: #172733;
+  --color-token-button-foreground: #ffffff;
+  --color-token-button-border: rgba(22, 75, 109, .2);
+  --color-token-on-accent: #172733;
+  border-color: var(--mx-line) !important;
+}
+
+/* Task and chat pages use image-derived sky neutrals, never the photograph. */
+html.codeface main.main-surface:not(.codeface-home-shell),
+html.codeface[data-codeface-shell="dark"] main.main-surface:not(.codeface-home-shell),
+html.codeface[data-codeface-shell="light"] main.main-surface:not(.codeface-home-shell) {
+  background:
+    radial-gradient(circle at 86% 3%, rgba(74, 156, 195, .07), transparent 34%),
+    linear-gradient(155deg, #f8fbfd, #edf4f7 60%, #e2edf2) !important;
+  color: var(--mx-ink) !important;
+  box-shadow: inset 0 1px #fff, -8px 0 24px rgba(23, 39, 51, .07) !important;
+}
+
+html.codeface main.main-surface > header.app-header-tint,
+html.codeface[data-codeface-shell="dark"] main.main-surface > header.app-header-tint,
+html.codeface[data-codeface-shell="light"] main.main-surface > header.app-header-tint {
+  border-bottom-color: var(--mx-line) !important;
+  background: rgba(248, 251, 253, .94) !important;
+  color: var(--mx-ink) !important;
+  box-shadow: 0 5px 16px rgba(23, 39, 51, .055) !important;
+  backdrop-filter: blur(10px) saturate(102%) !important;
+}
+
+html.codeface main.main-surface > header.app-header-tint :is(button, a, span, div) { color: var(--mx-ink) !important; }
+html.codeface main.main-surface > header.app-header-tint svg { color: var(--mx-muted) !important; }
+
+html.codeface main.main-surface:not(.codeface-home-shell) article {
+  border-color: rgba(22, 75, 109, .1) !important;
+  background: rgba(255, 255, 255, .8) !important;
+  color: var(--mx-ink) !important;
+  box-shadow: 0 6px 18px rgba(23, 39, 51, .055) !important;
+  backdrop-filter: blur(7px) !important;
+}
+
+html.codeface main.main-surface:not(.codeface-home-shell) [data-message-author-role="user"] {
+  border-color: rgba(74, 156, 195, .22) !important;
+  background: linear-gradient(135deg, #e1f1f8, #edf5f8) !important;
+  box-shadow: inset 3px 0 rgba(74, 156, 195, .6) !important;
+}
+
+html.codeface main.main-surface:not(.codeface-home-shell) :is(.text-token-foreground, .text-token-text-primary) { color: #172733 !important; }
+html.codeface main.main-surface:not(.codeface-home-shell) :is(.text-token-text-secondary, .text-token-conversation-body) { color: #405563 !important; }
+html.codeface main.main-surface:not(.codeface-home-shell) :is(.text-token-description-foreground, .text-token-muted-foreground) { color: #667985 !important; }
+
+html.codeface main.main-surface:not(.codeface-home-shell) .group\/turn-diff-header,
+html.codeface main.main-surface:not(.codeface-home-shell) [class*="turn-diff"] { color: #172733 !important; }
+
+html.codeface main.main-surface:not(.codeface-home-shell) .bg-token-dropdown-background\/50 {
+  border: 1px solid rgba(22, 75, 109, .11) !important;
+  background: rgba(248, 251, 253, .94) !important;
+  box-shadow: 0 9px 24px rgba(23, 39, 51, .07) !important;
+}
+
+/* Home keeps Messi and the trophy unobstructed on the left. */
+html.codeface main.main-surface.codeface-home-shell,
+html.codeface[data-codeface-shell="dark"] main.main-surface.codeface-home-shell,
+html.codeface[data-codeface-shell="light"] main.main-surface.codeface-home-shell {
+  border-color: transparent !important;
+  background:
+    linear-gradient(180deg, rgba(3, 10, 20, .04), rgba(3, 10, 20, .26)),
+    var(--codeface-art) center 42% / cover no-repeat !important;
+  box-shadow: none !important;
+}
+
+html.codeface main.main-surface.codeface-home-shell::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+  background:
+    linear-gradient(270deg, rgba(4, 12, 22, .88) 0%, rgba(4, 12, 22, .68) 28%, rgba(4, 12, 22, .16) 50%, transparent 66%),
+    linear-gradient(0deg, rgba(4, 12, 22, .28), transparent 44%) !important;
+}
+
+html.codeface main.main-surface.codeface-home-shell > * { position: relative !important; z-index: 1 !important; }
+html.codeface .codeface-home { --thread-content-max-width: min(100%, calc(100cqw - 44px)) !important; }
+html.codeface .codeface-home > div:first-child { padding-top: 0 !important; }
+html.codeface .codeface-home > div:first-child > div:first-child { flex-basis: 610px !important; min-height: 610px !important; }
+
+html.codeface .codeface-home > div:first-child > div:first-child > div:first-child {
+  width: calc(100% - 76px) !important;
+  height: 190px !important;
+  min-height: 190px !important;
+  margin-left: 38px !important;
+  margin-right: 38px !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+html.codeface .codeface-home > div:first-child > div:first-child > div:first-child > div:first-child {
+  justify-content: flex-end !important;
+  padding-left: 0 !important;
+}
+
+html.codeface .codeface-home > div:first-child > div:first-child > div:first-child > div:first-child > div:first-child {
+  width: 540px !important;
+  margin-left: auto !important;
+}
+
+html.codeface .codeface-home [data-feature="game-source"] {
+  max-width: 540px !important;
+  color: #f8fbfd !important;
+  font-size: clamp(23px, 1.8vw, 30px) !important;
+  line-height: 1.22 !important;
+  letter-spacing: -.025em !important;
+  text-align: left !important;
+  text-shadow: 0 2px 18px rgba(0, 5, 14, .95) !important;
+}
+
+html.codeface .codeface-home [data-feature="game-source"] :is(span, div) {
+  color: inherit !important;
+}
+
+html.codeface .codeface-home [data-feature="game-source"]::before {
+  margin-bottom: 12px !important;
+  color: #f1cf7e !important;
+  font-size: 11px !important;
+  letter-spacing: .12em !important;
+  text-shadow: 0 2px 12px rgba(0, 5, 14, .94) !important;
+}
+
+html.codeface .codeface-home [data-feature="game-source"]::after {
+  margin-top: 15px !important;
+  color: #e6f0f4 !important;
+  font-size: 13px !important;
+  text-shadow: 0 2px 12px rgba(0, 5, 14, .94) !important;
+}
+
+html.codeface .codeface-home [data-feature="game-source"] button {
+  border-color: rgba(232, 199, 124, .54) !important;
+  background: rgba(10, 24, 38, .88) !important;
+  color: #f1cf7e !important;
+  box-shadow: none !important;
+}
+
+/* Restore all native suggestions and arrange them in the right operations rail. */
+html.codeface .codeface-home .group\/home-suggestions,
+html.codeface .codeface-home div:has(> div > .group\/home-suggestions) {
+  display: block !important;
+}
+
+html.codeface .codeface-home > div:first-child > div:first-child > div:first-child > div:nth-child(2) {
+  left: 38px !important;
+  right: 38px !important;
+  top: 215px !important;
+  width: auto !important;
+}
+
+html.codeface .codeface-home .group\/home-suggestions {
+  width: 100% !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+html.codeface .codeface-home .group\/home-suggestions:not(:has(.group\/home-suggestion-list-item)) > div {
+  width: 100% !important;
+}
+
+html.codeface .codeface-home .group\/home-suggestions:not(:has(.group\/home-suggestion-list-item)) > div > div {
+  display: grid !important;
+  width: 500px !important;
+  margin-left: auto !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+}
+
+html.codeface .codeface-home .group\/home-suggestions:not(:has(.group\/home-suggestion-list-item)) > div > div > * {
+  display: block !important;
+  min-width: 0 !important;
+}
+
+html.codeface .codeface-home .group\/home-suggestions:not(:has(.group\/home-suggestion-list-item)) > div > div > *:last-child:nth-child(odd) { grid-column: 1 / -1 !important; }
+
+html.codeface .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item) {
+  min-height: 100px !important;
+  padding: 13px 15px !important;
+  border: 1px solid rgba(255, 255, 255, .48) !important;
+  border-radius: 13px !important;
+  background: rgba(248, 251, 253, .94) !important;
+  color: var(--mx-ink) !important;
+  box-shadow: 0 10px 24px rgba(3, 10, 20, .23), inset 0 1px #fff !important;
+  backdrop-filter: blur(10px) saturate(103%) !important;
+}
+
+html.codeface .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item) > span:last-child {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+html.codeface .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item):hover {
+  border-color: rgba(180, 122, 32, .48) !important;
+  background: #fffaf0 !important;
+  box-shadow: 0 12px 26px rgba(3, 10, 20, .25), inset 3px 0 var(--mx-gold) !important;
+  transform: translateY(-1px) !important;
+}
+
+html.codeface .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item):active {
+  background: #f4ead1 !important;
+  transform: scale(.985) !important;
+}
+
+html.codeface .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item) > span:first-child > span:first-child {
+  width: 32px !important;
+  height: 32px !important;
+  border: 0 !important;
+  border-radius: 9px !important;
+  background: #e8c77c !important;
+  box-shadow: none !important;
+}
+
+html.codeface .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item) svg { color: #17364b !important; }
+html.codeface .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item)::after {
+  color: #5b6c78 !important;
+  font-size: 12px !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+/* Project selector and composer complete the right-side control stack. */
+html.codeface .codeface-home div:has(> .horizontal-scroll-fade-mask .group\/project-selector) {
+  width: 520px !important;
+  margin-left: auto !important;
+  margin-right: 38px !important;
+  padding: 29px 12px 9px !important;
+  border-radius: 13px !important;
+  border-color: rgba(255, 255, 255, .5) !important;
+  background: rgba(248, 251, 253, .94) !important;
+  box-shadow: 0 10px 26px rgba(3, 10, 20, .22) !important;
+  backdrop-filter: blur(10px) saturate(103%) !important;
+}
+
+html.codeface .codeface-home div:has(> .horizontal-scroll-fade-mask .group\/project-selector)::before {
+  color: #8a5b16 !important;
+  font-size: 10px !important;
+  letter-spacing: .08em !important;
+}
+
+html.codeface .codeface-home .group\/project-selector > button {
+  border-color: rgba(22, 75, 109, .14) !important;
+  background: rgba(255, 255, 255, .92) !important;
+  color: var(--mx-ink) !important;
+}
+
+html.codeface .codeface-home .composer-surface-chrome {
+  width: 520px !important;
+  margin-left: auto !important;
+  margin-right: 38px !important;
+}
+
+html.codeface .composer-surface-chrome,
+html.codeface[data-codeface-shell="dark"] .composer-surface-chrome,
+html.codeface[data-codeface-shell="light"] .composer-surface-chrome {
+  color-scheme: light !important;
+  border-color: rgba(22, 75, 109, .17) !important;
+  background: #ffffff !important;
+  color: var(--mx-ink) !important;
+  box-shadow: 0 14px 34px rgba(23, 39, 51, .13), inset 0 1px #fff !important;
+  backdrop-filter: none !important;
+}
+
+html.codeface .composer-surface-chrome :is(button, span, div, textarea, [contenteditable="true"]) { color: var(--mx-ink) !important; }
+html.codeface .composer-surface-chrome svg { color: #587180 !important; }
+html.codeface .composer-surface-chrome:focus-within {
+  border-color: rgba(180, 122, 32, .54) !important;
+  box-shadow: 0 14px 34px rgba(23, 39, 51, .14), inset 3px 0 var(--mx-gold) !important;
+}
+
+html.codeface .ProseMirror { color: var(--mx-ink) !important; caret-color: var(--mx-gold) !important; }
+html.codeface .ProseMirror[data-placeholder]::before { color: #73838e !important; }
+
+html.codeface #codeface-chrome .codeface-status,
+html.codeface #codeface-chrome .codeface-quote,
+html.codeface #codeface-chrome .codeface-orbit,
+html.codeface #codeface-chrome .codeface-particles { display: none !important; }
+
+@media (max-width: 1040px) {
+  html.codeface .codeface-home .group\/home-suggestions:not(:has(.group\/home-suggestion-list-item)) > div > div,
+  html.codeface .codeface-home div:has(> .horizontal-scroll-fade-mask .group\/project-selector),
+  html.codeface .codeface-home .composer-surface-chrome {
+    width: min(500px, calc(100cqw - 56px)) !important;
+    margin-right: 28px !important;
+  }
+}
+
+@media (max-width: 680px) {
+  html.codeface main.main-surface.codeface-home-shell { background-position: 42% center !important; }
+
+  html.codeface main.main-surface.codeface-home-shell::after {
+    background: linear-gradient(0deg, rgba(4, 12, 22, .84), rgba(4, 12, 22, .18) 76%) !important;
+  }
+
+  html.codeface .codeface-home .group\/home-suggestions:not(:has(.group\/home-suggestion-list-item)) > div > div {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Final conflict fixes against Codex semantic utilities. */
+html.codeface main.main-surface.codeface-home-shell .codeface-home [data-feature="game-source"],
+html.codeface main.main-surface.codeface-home-shell .codeface-home [data-feature="game-source"] > span {
+  color: #fffaf0 !important;
+  text-shadow: 0 2px 4px rgba(0, 5, 14, .92), 0 8px 24px rgba(0, 5, 14, .74) !important;
+}
+
+html.codeface main.main-surface.codeface-home-shell .codeface-home [data-feature="game-source"] > span > button {
+  color: #f1cf7e !important;
+}
+
+html.codeface .codeface-home div:has(> .horizontal-scroll-fade-mask .group\/project-selector) {
+  margin-bottom: 10px !important;
+}

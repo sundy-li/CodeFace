@@ -15,7 +15,7 @@ All three files must exist when a theme is imported. A source theme pack may als
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "my-theme",
   "name": "My Theme",
   "brandSubtitle": "CODEFACE CUSTOM THEME",
@@ -25,6 +25,7 @@ All three files must exist when a theme is imported. A source theme pack may als
   "statusText": "CODEFACE ONLINE",
   "quote": "MAKE SOMETHING WONDERFUL",
   "image": "background.png",
+  "avatar": "avatar.png",
   "suggestions": [
     { "title": "Build", "description": "Write code and apps" },
     { "title": "Analyze", "description": "Understand code and data" },
@@ -35,7 +36,42 @@ All three files must exist when a theme is imported. A source theme pack may als
     "heroFit": "none",
     "heroPosition": "center center",
     "backgroundPosition": "center center",
-    "taskOverlay": 0.5
+    "taskOverlay": 0.5,
+    "sidebarWidth": 260,
+    "contentMaxWidth": 960,
+    "composerMaxWidth": 820,
+    "heroHeight": 252
+  },
+  "typography": {
+    "fontFamily": "system-ui, sans-serif",
+    "monoFontFamily": "ui-monospace, monospace",
+    "fontSize": 14,
+    "lineHeight": 1.5
+  },
+  "geometry": {
+    "radiusXs": 4,
+    "radiusSm": 8,
+    "radiusMd": 12,
+    "radiusLg": 18,
+    "radiusXl": 24,
+    "borderWidth": 1,
+    "density": 1,
+    "uiScale": 1
+  },
+  "effects": {
+    "blur": 18,
+    "saturation": 1.08,
+    "shadowColor": "rgba(0,0,0,.18)",
+    "shadowStrength": 1,
+    "textureOpacity": 0.08,
+    "motionScale": 1
+  },
+  "chrome": {
+    "brand": true,
+    "status": true,
+    "quote": false,
+    "particles": false,
+    "orbit": false
   },
   "colors": {
     "background": "#FFFFFF",
@@ -52,7 +88,13 @@ All three files must exist when a theme is imported. A source theme pack may als
 }
 ```
 
-`heroFit` supports `none`, `contain`, and `cover`. `taskOverlay` is clamped to a safe range.
+`heroFit` supports `none`, `contain`, and `cover`. Positions accept safe CSS keywords or percentages. Numeric theme values are clamped to readable, bounded ranges.
+
+`appearance.light` and `appearance.dark` may override `colors`, `typography`, `geometry`, `effects`, `layout`, and `variables` for each Codex appearance. Top-level `variables` exposes additional CSS custom properties whose names start with `--cf-`; unsafe names and values are ignored.
+
+The v2 sections are optional and schema v1 packs remain compatible. CodeFace ships the editable `Codex 2007 · 蓝色好友面板` pack as an example of the full configuration surface.
+
+`avatar` is optional. When present, it must name an image file in the theme directory, is limited to 4 MiB, and is exposed as `var(--codeface-avatar)` for theme CSS. Avatar data is loaded through the same local Blob URL mechanism as the background image; no external URL is permitted.
 
 ## codeface.css
 

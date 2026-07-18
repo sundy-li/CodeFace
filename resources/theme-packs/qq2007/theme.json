@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 2,
+  "id": "qq2007",
+  "name": "QQ 2007",
+  "brandSubtitle": "QQ",
+  "tagline": "代码有问题？找我！你的智能伙伴 Codex 随时在线",
+  "projectPrefix": "项目 · ",
+  "projectLabel": "选择项目",
+  "statusText": "CODEX 小蓝 · LV 07",
+  "quote": "在线 · 随时响应",
+  "image": "background.png",
+  "avatar": "avatar.png",
+  "suggestions": [],
+  "layout": {
+    "heroFit": "none",
+    "heroPosition": "center center",
+    "backgroundPosition": "center center",
+    "taskOverlay": 0.38,
+    "sidebarWidth": 356,
+    "contentMaxWidth": 900,
+    "composerMaxWidth": 820,
+    "heroHeight": 196
+  },
+  "typography": {
+    "fontFamily": "Tahoma, 'Microsoft YaHei UI', 'Segoe UI', sans-serif",
+    "monoFontFamily": "Consolas, 'Courier New', monospace",
+    "fontSize": 13,
+    "lineHeight": 1.52
+  },
+  "geometry": {
+    "radiusXs": 2,
+    "radiusSm": 3,
+    "radiusMd": 5,
+    "radiusLg": 7,
+    "radiusXl": 9,
+    "borderWidth": 1,
+    "density": 0.88,
+    "uiScale": 0.94
+  },
+  "effects": {
+    "blur": 0,
+    "saturation": 1.05,
+    "shadowColor": "rgba(23, 91, 161, .28)",
+    "shadowStrength": 0.75,
+    "textureOpacity": 0.16,
+    "motionScale": 0.35
+  },
+  "chrome": {
+    "brand": true,
+    "status": true,
+    "quote": false,
+    "particles": false,
+    "orbit": false
+  },
+  "colors": {
+    "background": "#DDEEFF",
+    "panel": "#FFFFFF",
+    "panelAlt": "#EAF5FF",
+    "accent": "#1672D4",
+    "accentAlt": "#65AFFF",
+    "secondary": "#94CBFF",
+    "highlight": "#0B4E9A",
+    "text": "#132F52",
+    "muted": "#536F8D",
+    "line": "#79A9D9"
+  },
+  "appearance": {
+    "dark": {
+      "colors": {
+        "background": "#DDEEFF",
+        "panel": "#FFFFFF",
+        "panelAlt": "#EAF5FF",
+        "text": "#132F52",
+        "muted": "#536F8D",
+        "line": "#79A9D9"
+      }
+    }
+  },
+  "variables": {
+    "--cf-xp-blue": "#1672D4",
+    "--cf-xp-blue-deep": "#0756AD",
+    "--cf-xp-blue-pale": "#EAF5FF",
+    "--cf-xp-gloss": "rgba(255,255,255,.72)"
+  }
+}

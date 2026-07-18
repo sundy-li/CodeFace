@@ -490,3 +490,74 @@ html.codeface .codeface-home .group\/project-selector > button:hover {
     transform: none !important;
   }
 }
+
+/* Compact home prompt shortcuts. The system skin repeats these rules after
+   custom theme CSS so native controls keep this footprint in every theme. */
+html.codeface [class~="group/home-suggestions"]:not(:has([class~="group/home-suggestion-list-item"])) {
+  width: min(900px, 100%) !important;
+  margin-inline: auto !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+html.codeface [class~="group/home-suggestions"]:not(:has([class~="group/home-suggestion-list-item"])) > div > div {
+  display: grid !important;
+  width: 100% !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+}
+
+html.codeface [class~="group/home-suggestions"]:not(:has([class~="group/home-suggestion-list-item"])) button {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  width: 100% !important;
+  height: 54px !important;
+  min-height: 54px !important;
+  max-height: 54px !important;
+  padding: 9px 14px !important;
+  gap: 10px !important;
+  border-radius: 12px !important;
+  text-align: left !important;
+}
+
+html.codeface [class~="group/home-suggestions"]:not(:has([class~="group/home-suggestion-list-item"])) button > span:first-child > span:first-child {
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  margin: 0 !important;
+  border-radius: 8px !important;
+}
+
+html.codeface [class~="group/home-suggestions"]:not(:has([class~="group/home-suggestion-list-item"])) button > span:last-child {
+  display: none !important;
+}
+
+html.codeface [class~="group/home-suggestions"]:not(:has([class~="group/home-suggestion-list-item"])) button::after {
+  min-width: 0 !important;
+  margin: 0 !important;
+  color: inherit !important;
+  font-size: 14px !important;
+  font-weight: 650 !important;
+  line-height: 1.25 !important;
+  text-align: left !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+@media (max-width: 900px) {
+  html.codeface [class~="group/home-suggestions"]:not(:has([class~="group/home-suggestion-list-item"])) > div > div {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 560px) {
+  html.codeface [class~="group/home-suggestions"]:not(:has([class~="group/home-suggestion-list-item"])) > div > div {
+    grid-template-columns: 1fr !important;
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 2,
+  "id": "fzd",
+  "name": "樊振东 · 冠军时刻",
+  "brandSubtitle": "BORN FOR THE BIG STAGE",
+  "tagline": "心怀热爱，奔赴每一个冠军时刻",
+  "projectPrefix": "准备出战 · ",
+  "projectLabel": "选择项目",
+  "statusText": "MATCH READY",
+  "quote": "ONE POINT AT A TIME",
+  "suggestions": [],
+  "image": "background.png",
+  "layout": {
+    "heroFit": "none",
+    "heroPosition": "center 48%",
+    "backgroundPosition": "center 48%",
+    "taskOverlay": 0.35,
+    "sidebarWidth": 356,
+    "contentMaxWidth": 980,
+    "composerMaxWidth": 840,
+    "heroHeight": 248
+  },
+  "typography": {
+    "fontFamily": "-apple-system, BlinkMacSystemFont, \"PingFang SC\", \"Microsoft YaHei UI\", system-ui, sans-serif",
+    "monoFontFamily": "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
+    "fontSize": 14,
+    "lineHeight": 1.56
+  },
+  "geometry": {
+    "radiusXs": 4,
+    "radiusSm": 8,
+    "radiusMd": 12,
+    "radiusLg": 16,
+    "radiusXl": 22,
+    "borderWidth": 1,
+    "density": 1,
+    "uiScale": 1
+  },
+  "effects": {
+    "blur": 16,
+    "saturation": 1.04,
+    "shadowColor": "rgba(2, 7, 14, 0.46)",
+    "shadowStrength": 1,
+    "textureOpacity": 0.035,
+    "motionScale": 0.85
+  },
+  "chrome": {
+    "brand": true,
+    "status": false,
+    "quote": false,
+    "particles": false,
+    "orbit": false
+  },
+  "colors": {
+    "background": "#0B1018",
+    "panel": "#121A25",
+    "panelAlt": "#182334",
+    "accent": "#2F8FAA",
+    "accentAlt": "#77C7CF",
+    "secondary": "#3155A0",
+    "highlight": "#D13B3F",
+    "text": "#F4F7FA",
+    "muted": "#A7B2C2",
+    "line": "#344256"
+  }
+}

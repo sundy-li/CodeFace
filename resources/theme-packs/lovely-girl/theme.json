@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "lovely-girl",
+  "name": "Lovely Girl",
+  "brandSubtitle": "A WARM SPACE TO CREATE",
+  "tagline": "让灵感安静生长，把每一次创造都变得温柔",
+  "projectPrefix": "选择项目 · ",
+  "projectLabel": "◉  选择项目",
+  "statusText": "READY TO CREATE",
+  "quote": "CREATE WITH WONDER",
+  "suggestions": [],
+  "image": "background.png",
+  "layout": {
+    "heroFit": "none",
+    "heroPosition": "center center",
+    "backgroundPosition": "center 35%",
+    "taskOverlay": 0.39
+  },
+  "colors": {
+    "background": "#F7F1E8",
+    "panel": "#FFFDF9",
+    "panelAlt": "#F3E8DC",
+    "accent": "#A85865",
+    "accentAlt": "#E4B8AE",
+    "secondary": "#B58A5C",
+    "highlight": "#743C47",
+    "text": "#352A28",
+    "muted": "#776864",
+    "line": "#D9C5B8"
+  }
+}

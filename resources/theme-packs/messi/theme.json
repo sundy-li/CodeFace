@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 2,
+  "id": "messi",
+  "name": "Messi · World Champion",
+  "brandSubtitle": "THE CHAMPION'S WORKSPACE",
+  "tagline": "让伟大的想法，在冠军之夜继续生长",
+  "projectPrefix": "当前项目 · ",
+  "projectLabel": "选择项目",
+  "statusText": "READY FOR THE NEXT GOAL",
+  "quote": "CREATE LIKE A CHAMPION",
+  "suggestions": [],
+  "image": "background.png",
+  "layout": {
+    "heroFit": "none",
+    "heroPosition": "center center",
+    "backgroundPosition": "center 42%",
+    "taskOverlay": 0.35,
+    "sidebarWidth": 300,
+    "contentMaxWidth": 980,
+    "composerMaxWidth": 840,
+    "heroHeight": 220
+  },
+  "typography": {
+    "fontFamily": "-apple-system, BlinkMacSystemFont, \"PingFang SC\", \"Microsoft YaHei UI\", system-ui, sans-serif",
+    "monoFontFamily": "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
+    "fontSize": 14,
+    "lineHeight": 1.56
+  },
+  "geometry": {
+    "radiusXs": 4,
+    "radiusSm": 7,
+    "radiusMd": 11,
+    "radiusLg": 15,
+    "radiusXl": 20,
+    "borderWidth": 1,
+    "density": 1,
+    "uiScale": 1
+  },
+  "effects": {
+    "blur": 12,
+    "saturation": 1.02,
+    "shadowColor": "rgba(15, 35, 50, 0.18)",
+    "shadowStrength": 1,
+    "textureOpacity": 0.025,
+    "motionScale": 0.8
+  },
+  "chrome": {
+    "brand": true,
+    "status": false,
+    "quote": false,
+    "particles": false,
+    "orbit": false
+  },
+  "colors": {
+    "background": "#EAF2F6",
+    "panel": "#F8FBFD",
+    "panelAlt": "#DCEAF1",
+    "accent": "#8A5B16",
+    "accentAlt": "#E8C77C",
+    "secondary": "#4A9CC3",
+    "highlight": "#164B6D",
+    "text": "#172733",
+    "muted": "#5B6C78",
+    "line": "#B8CBD5"
+  }
+}
