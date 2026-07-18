@@ -954,7 +954,7 @@ dependencies = [
  "sysinfo 0.39.6",
  "tungstenite",
  "url",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
  "winresource",
 ]
 
@@ -5001,7 +5001,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.4.15",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
