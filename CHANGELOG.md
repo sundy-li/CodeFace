@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.3.0 — 2026-07-19
+
+- Added direct installation of compatible `.codex-theme` packages from CodexThemes by theme ID or localized detail-page URL.
+- Added a unified add-theme menu for creating local themes, importing directories, and installing market themes.
+- Added validated conversion of market manifests, palettes, CSS, and artwork into the CodeFace theme library with safe same-source updates.
+- Added a dedicated CodexThemes runtime mode that preserves market CSS instead of mixing it with CodeFace layout and decorative layers.
+- Added semantic compatibility markers for current Codex home suggestions, project selectors, diffs, and terminals.
+- Added focal-point-aware home layout positioning so controls avoid covering the primary artwork subject.
+- Fixed repeated suggestion reconstruction by replacing destructive rescans with incremental DOM synchronization and removing market-theme polling.
+- Added visible in-dialog installation errors and support for both `/themes/<id>` and `/zh/themes/<id>` URLs.
+
 ## 1.2.0 — 2026-07-19
 
 - Added the CodeFace Skill and a Skill-linked prompt workflow for AI-assisted theme refinement.

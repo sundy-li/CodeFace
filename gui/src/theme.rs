@@ -1,13 +1,18 @@
 use crate::paths;
 use anyhow::{Context, Result, bail};
+use base64::{Engine as _, engine::general_purpose::STANDARD};
 use chrono::Local;
 use image::{DynamicImage, Rgba, RgbaImage};
 use serde_json::Value;
 use std::{
     fs,
+    io::Read,
     path::{Path, PathBuf},
     time::{SystemTime, UNIX_EPOCH},
 };
+
+const CODEXTHEMES_BASE_URL: &str = "https://codexthemes.ai";
+const CODEXTHEMES_MAX_PACKAGE_SIZE: usize = 30 * 1024 * 1024;
 
 pub const DEFAULT_JSON: &str = include_str!("../../resources/theme-pack-template/theme.json");
 pub const DEFAULT_CSS: &str = include_str!("../../resources/theme-pack-template/codeface.css");
@@ -174,6 +179,277 @@ fn install_bundled_themes_into(themes_root: &Path) -> Result<()> {
     Ok(())
 }
 
+fn codexthemes_id(input: &str) -> Result<String> {
+    let input = input.trim().trim_end_matches('/');
+    let candidate = if input.starts_with("http://") || input.starts_with("https://") {
+        let url = url::Url::parse(input).context("CodexThemes URL is invalid")?;
+        if url.scheme() != "https" || url.host_str() != Some("codexthemes.ai") {
+            bail!("only https://codexthemes.ai theme URLs are supported");
+        }
+        let segments: Vec<_> = url
+            .path_segments()
+            .context("CodexThemes URL does not contain a theme ID")?
+            .filter(|segment| !segment.is_empty())
+            .collect();
+        match segments.as_slice() {
+            ["themes", id] | ["zh", "themes", id] => (*id).to_owned(),
+            _ => bail!(
+                "CodexThemes URL must look like https://codexthemes.ai[/zh]/themes/<theme-id>"
+            ),
+        }
+    } else {
+        input.to_owned()
+    };
+    if candidate.is_empty()
+        || candidate.len() > 64
+        || !candidate
+            .bytes()
+            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-')
+    {
+        bail!("CodexThemes theme ID must contain only lowercase letters, digits, and hyphens");
+    }
+    Ok(candidate)
+}
+
+fn rewrite_codexthemes_art_urls(css: &str, art_paths: &[&str]) -> Result<String> {
+    let mut output = String::with_capacity(css.len());
+    let mut remaining = css;
+    while let Some(offset) = remaining.to_ascii_lowercase().find("url(") {
+        output.push_str(&remaining[..offset]);
+        let value_start = offset + 4;
+        let tail = &remaining[value_start..];
+        let close = tail
+            .find(')')
+            .context("theme CSS contains an unterminated url()")?;
+        let raw = tail[..close].trim();
+        let reference = raw
+            .strip_prefix(['\'', '"'])
+            .and_then(|value| value.strip_suffix(['\'', '"']))
+            .unwrap_or(raw)
+            .trim()
+            .trim_start_matches("./");
+        if !art_paths
+            .iter()
+            .any(|path| path.trim_start_matches("./") == reference)
+        {
+            bail!("CodexThemes package CSS contains an unsupported asset URL: {reference}");
+        }
+        output.push_str("var(--codeface-art)");
+        remaining = &tail[close + 1..];
+    }
+    output.push_str(remaining);
+    Ok(output)
+}
+
+fn install_codexthemes_package_into(
+    package_bytes: &[u8],
+    requested_id: &str,
+    themes_root: &Path,
+) -> Result<String> {
+    if package_bytes.len() > CODEXTHEMES_MAX_PACKAGE_SIZE {
+        bail!("CodexThemes package cannot exceed 30 MiB");
+    }
+    let package: Value = serde_json::from_slice(package_bytes)
+        .context("CodexThemes package is not valid UTF-8 JSON")?;
+    if package.get("format").and_then(Value::as_str) != Some("codex-theme")
+        || package.get("schemaVersion").and_then(Value::as_u64) != Some(1)
+    {
+        bail!("unsupported CodexThemes package format or schema version");
+    }
+    let manifest = package
+        .get("manifest")
+        .and_then(Value::as_object)
+        .context("CodexThemes package is missing its manifest")?;
+    let id = manifest
+        .get("id")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    if id != requested_id {
+        bail!("downloaded CodexThemes package ID does not match the requested theme");
+    }
+    codexthemes_id(id)?;
+    let name = manifest
+        .get("displayName")
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .trim();
+    if name.is_empty() {
+        bail!("CodexThemes manifest must contain a non-empty displayName");
+    }
+    let css = package
+        .get("css")
+        .and_then(Value::as_str)
+        .context("CodexThemes package is missing its CSS")?;
+    if css.len() > 256 * 1024 {
+        bail!("CodexThemes theme CSS cannot exceed 256 KiB");
+    }
+    let art = package
+        .get("art")
+        .and_then(Value::as_object)
+        .context("CodexThemes package is missing its artwork")?;
+    let art_name = art
+        .get("filename")
+        .and_then(Value::as_str)
+        .context("CodexThemes artwork is missing its filename")?;
+    if Path::new(art_name)
+        .file_name()
+        .and_then(|value| value.to_str())
+        != Some(art_name)
+    {
+        bail!("CodexThemes artwork filename must be a plain relative filename");
+    }
+    let manifest_art = manifest
+        .get("art")
+        .and_then(Value::as_str)
+        .unwrap_or(art_name);
+    let css = rewrite_codexthemes_art_urls(css, &[manifest_art, art_name])?;
+    let art_bytes = STANDARD
+        .decode(
+            art.get("base64")
+                .and_then(Value::as_str)
+                .context("CodexThemes artwork is missing its base64 data")?,
+        )
+        .context("CodexThemes artwork is not valid base64")?;
+    if art_bytes.len() > 16 * 1024 * 1024 {
+        bail!("CodexThemes artwork cannot exceed 16 MiB");
+    }
+    let artwork =
+        image::load_from_memory(&art_bytes).context("failed to decode CodexThemes artwork")?;
+
+    let target = themes_root.join(id);
+    if target.exists() {
+        let installed: Value = serde_json::from_str(
+            &fs::read_to_string(target.join("theme.json"))
+                .context("failed to inspect the existing theme before update")?,
+        )?;
+        if installed
+            .get("codexthemes")
+            .and_then(|value| value.get("source"))
+            .and_then(Value::as_str)
+            != Some(format!("{CODEXTHEMES_BASE_URL}/themes/{id}").as_str())
+        {
+            bail!("theme {id} already exists and is not a CodexThemes installation");
+        }
+    }
+    fs::create_dir_all(themes_root)?;
+    let staging = themes_root.join(format!(".{id}.codexthemes-{}", std::process::id()));
+    if staging.exists() {
+        fs::remove_dir_all(&staging)?;
+    }
+    fs::create_dir(&staging)?;
+
+    let palette = manifest.get("palette");
+    let color = |key: &str, fallback: &str| {
+        palette
+            .and_then(|value| value.get(key))
+            .and_then(Value::as_str)
+            .unwrap_or(fallback)
+            .to_owned()
+    };
+    let focal_point = manifest
+        .get("design")
+        .and_then(|value| value.get("artFocalPoint"))
+        .and_then(Value::as_str)
+        .unwrap_or("center center");
+    let codeface_manifest = serde_json::json!({
+        "id": id,
+        "name": name,
+        "description": manifest.get("description").and_then(Value::as_str).unwrap_or("CodexThemes theme"),
+        "image": "background.png",
+        "colors": {
+            "background": color("canvas", "#111111"),
+            "panel": color("surface", "#191919"),
+            "panelAlt": color("raised", "#242424"),
+            "accent": color("accent", "#7C3AED"),
+            "accentAlt": color("focus", "#9B87FF"),
+            "text": color("text", "#F5F5F5"),
+            "muted": color("muted", "#A0A0A0"),
+            "line": color("border", "#383838")
+        },
+        "layout": { "backgroundPosition": focal_point },
+        "codexthemes": {
+            "source": format!("{CODEXTHEMES_BASE_URL}/themes/{id}"),
+            "version": manifest.get("version").cloned().unwrap_or(Value::Null),
+            "backgroundScope": manifest.get("design").and_then(|value| value.get("backgroundScope")).cloned().unwrap_or(Value::String("home".into()))
+        }
+    });
+
+    let result = (|| -> Result<()> {
+        atomic_write(
+            &staging.join("theme.json"),
+            format!("{}\n", serde_json::to_string_pretty(&codeface_manifest)?).as_bytes(),
+        )?;
+        atomic_write(&staging.join("codeface.css"), css.as_bytes())?;
+        artwork.save_with_format(staging.join("background.png"), image::ImageFormat::Png)?;
+        let backup = themes_root.join(format!(".{id}.codexthemes-backup-{}", std::process::id()));
+        if backup.exists() {
+            fs::remove_dir_all(&backup)?;
+        }
+        if target.exists() {
+            fs::rename(&target, &backup)?;
+        }
+        if let Err(error) = fs::rename(&staging, &target) {
+            if backup.exists() {
+                let _ = fs::rename(&backup, &target);
+            }
+            return Err(error.into());
+        }
+        if backup.exists() {
+            fs::remove_dir_all(backup)?;
+        }
+        Ok(())
+    })();
+    if result.is_err() && staging.exists() {
+        let _ = fs::remove_dir_all(&staging);
+    }
+    result?;
+    Ok(id.to_owned())
+}
+
+pub fn install_from_codexthemes(input: &str) -> Result<String> {
+    let id = codexthemes_id(input)?;
+    let endpoint = format!("{CODEXTHEMES_BASE_URL}/api/themes/{id}/download");
+    let response = reqwest::blocking::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()?
+        .get(endpoint)
+        .header(reqwest::header::ACCEPT, "application/json")
+        .send()
+        .context("failed to download theme from CodexThemes")?;
+    let status = response.status();
+    if status == reqwest::StatusCode::TOO_MANY_REQUESTS
+        || status == reqwest::StatusCode::PAYMENT_REQUIRED
+    {
+        bail!(
+            "CodexThemes anonymous download quota is exhausted; configure an API key with the official installer or try again later"
+        );
+    }
+    let response = response
+        .error_for_status()
+        .with_context(|| format!("CodexThemes download failed with HTTP {status}"))?;
+    let final_url = response.url();
+    let final_host = final_url.host_str().unwrap_or_default();
+    if final_url.scheme() != "https"
+        || !(final_host == "codexthemes.ai" || final_host.ends_with(".codexthemes.ai"))
+    {
+        bail!("CodexThemes download redirected outside the trusted HTTPS domain");
+    }
+    if response
+        .content_length()
+        .is_some_and(|length| length > CODEXTHEMES_MAX_PACKAGE_SIZE as u64)
+    {
+        bail!("CodexThemes package cannot exceed 30 MiB");
+    }
+    let mut bytes = Vec::new();
+    response
+        .take(CODEXTHEMES_MAX_PACKAGE_SIZE as u64 + 1)
+        .read_to_end(&mut bytes)?;
+    if bytes.len() > CODEXTHEMES_MAX_PACKAGE_SIZE {
+        bail!("CodexThemes package cannot exceed 30 MiB");
+    }
+    install_codexthemes_package_into(&bytes, &id, &paths::themes_root()?)
+}
+
 pub fn import_directory(source: &Path) -> Result<String> {
     let json = fs::read_to_string(source.join("theme.json"))
         .context("theme pack is missing theme.json")?;
@@ -319,6 +595,104 @@ mod tests {
         assert_eq!(value["name"], "Sample Theme");
         assert_eq!(safe_id("CodeFace 01"), "codeface-01");
         assert!(validate_json("{}").is_err());
+    }
+
+    #[test]
+    fn parses_codexthemes_ids_and_urls() {
+        assert_eq!(
+            codexthemes_id("https://codexthemes.ai/themes/portal-panic").expect("theme URL"),
+            "portal-panic"
+        );
+        assert_eq!(
+            codexthemes_id("https://codexthemes.ai/zh/themes/shenron-starwish")
+                .expect("localized theme URL"),
+            "shenron-starwish"
+        );
+        assert_eq!(
+            codexthemes_id("portal-panic").expect("theme ID"),
+            "portal-panic"
+        );
+        assert!(codexthemes_id("https://example.com/themes/portal-panic").is_err());
+        assert!(codexthemes_id("Portal Panic").is_err());
+    }
+
+    #[test]
+    fn installs_codexthemes_package_as_codeface_theme() {
+        let root = std::env::temp_dir().join(format!(
+            "codeface-codexthemes-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("clock")
+                .as_nanos()
+        ));
+        let mut png = Vec::new();
+        DynamicImage::ImageRgba8(RgbaImage::from_pixel(2, 2, Rgba([1, 2, 3, 255])))
+            .write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png)
+            .expect("encode artwork");
+        let mut package = serde_json::json!({
+            "format": "codex-theme",
+            "schemaVersion": 1,
+            "manifest": {
+                "id": "market-test",
+                "displayName": "Market Test",
+                "description": "Downloaded theme",
+                "version": "1.0.0",
+                "css": "theme.css",
+                "art": "assets/art.png",
+                "palette": {
+                    "canvas": "#101112",
+                    "surface": "#202122",
+                    "raised": "#303132",
+                    "text": "#F0F1F2",
+                    "muted": "#A0A1A2",
+                    "accent": "#33CC99",
+                    "border": "#404142"
+                },
+                "design": { "artFocalPoint": "82% 58%", "backgroundScope": "home" }
+            },
+            "css": ":root[data-codexthemes-theme=\"market-test\"] { --ct-art: url(\"./assets/art.png\"); }",
+            "art": {
+                "filename": "art.png",
+                "mimeType": "image/png",
+                "base64": STANDARD.encode(&png)
+            }
+        });
+        let id = install_codexthemes_package_into(
+            &serde_json::to_vec(&package).expect("encode package"),
+            "market-test",
+            &root,
+        )
+        .expect("install package");
+        assert_eq!(id, "market-test");
+        let installed = root.join(&id);
+        let manifest: Value = serde_json::from_str(
+            &fs::read_to_string(installed.join("theme.json")).expect("read manifest"),
+        )
+        .expect("parse manifest");
+        assert_eq!(manifest["name"], "Market Test");
+        assert_eq!(manifest["colors"]["accent"], "#33CC99");
+        assert_eq!(manifest["layout"]["backgroundPosition"], "82% 58%");
+        assert_eq!(manifest["codexthemes"]["version"], "1.0.0");
+        assert!(
+            fs::read_to_string(installed.join("codeface.css"))
+                .expect("read CSS")
+                .contains("var(--codeface-art)")
+        );
+        image::open(installed.join("background.png")).expect("decode installed artwork");
+        package["manifest"]["displayName"] = Value::String("Market Test Updated".into());
+        install_codexthemes_package_into(
+            &serde_json::to_vec(&package).expect("encode updated package"),
+            "market-test",
+            &root,
+        )
+        .expect("update installed market package");
+        let updated: Value = serde_json::from_str(
+            &fs::read_to_string(installed.join("theme.json")).expect("read updated manifest"),
+        )
+        .expect("parse updated manifest");
+        assert_eq!(updated["name"], "Market Test Updated");
+        fs::remove_dir_all(root).expect("remove test root");
     }
 
     #[test]

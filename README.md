@@ -28,6 +28,8 @@ Release builds are currently not notarized or code-signed with a commercial cert
 
 - Create, browse, preview, edit, delete, and switch themes from one place
 - Import theme packs and manage them alongside built-in and locally created themes
+- Install compatible `.codex-theme` packages directly from [CodexThemes](https://codexthemes.ai/) by theme ID or detail-page URL
+- Preserve market theme styling with incremental DOM compatibility, stable suggestions, and artwork-aware content positioning
 - Edit `theme.json` and `codeface.css` directly, with CSS syntax highlighting
 
 ### Customize themes with an LLM
@@ -58,6 +60,8 @@ background.png
 ```
 
 The template is available in [`resources/theme-pack-template`](resources/theme-pack-template). Double-click a theme in the theme list to edit its source directly.
+
+To install from the CodexThemes market, click **Install from CodexThemes**, paste a theme ID such as `portal-panic` or its `https://codexthemes.ai/themes/<id>` URL, and click **Install**. CodeFace downloads the official package through the anonymous market API, validates and converts it into the local CodeFace format, then selects it for preview. Listings marked as skins or non-installable archives are not supported by this flow.
 
 ## Codex Skill
 
@@ -147,6 +151,7 @@ The same CodeFace Rust executable provides these commands:
 codeface --apply-active
 codeface --apply-theme cyberpunk
 codeface --import-theme /path/to/theme-directory
+codeface --install-codexthemes portal-panic
 codeface --verify 9341
 codeface --restore
 codeface --print-data-root

@@ -139,15 +139,17 @@ fn payload(theme_root: &Path) -> Result<String> {
     {
         bail!("codeface.css cannot load external fonts, imports, or URL resources");
     }
+    let css = if theme.get("codexthemes").is_some() {
+        custom_css
+    } else {
+        format!("{CSS}\n{custom_css}")
+    };
     Ok(INJECTOR
         .replace(
             "__CODEFACE_VERSION_JSON__",
             &serde_json::to_string(paths::VERSION)?,
         )
-        .replace(
-            "__CODEFACE_CSS_JSON__",
-            &serde_json::to_string(&format!("{CSS}\n{custom_css}"))?,
-        )
+        .replace("__CODEFACE_CSS_JSON__", &serde_json::to_string(&css)?)
         .replace(
             "__CODEFACE_ART_JSON__",
             &serde_json::to_string(&art_data_url(theme_root, &theme)?)?,
@@ -550,6 +552,29 @@ mod tests {
         .expect("update css");
         let error = theme_snapshot(&root).expect_err("forbidden CSS must fail");
         assert!(error.to_string().contains("cannot load external"));
+        fs::remove_dir_all(root).expect("remove theme root");
+    }
+
+    #[test]
+    fn codexthemes_payload_does_not_mix_in_codeface_layout_css() {
+        let root = test_theme_root("codexthemes-payload");
+        fs::write(
+            root.join("theme.json"),
+            r#"{"id":"market-test","name":"Market Test","image":"background.png","codexthemes":{"source":"https://codexthemes.ai/themes/market-test"}}"#,
+        )
+        .expect("write market manifest");
+        fs::write(
+            root.join("codeface.css"),
+            r#":root[data-codexthemes-theme="market-test"] { color: tomato; }"#,
+        )
+        .expect("write market CSS");
+        let source = payload(&root).expect("build market payload");
+        assert!(source.contains("color: tomato"));
+        assert!(!source.contains("radial-gradient(circle at 84% 4%"));
+        assert!(source.contains("IS_CODEXTHEMES"));
+        assert!(source.contains("data-codeface-codexthemes-surface"));
+        assert!(source.contains("project-selector"));
+        assert!(source.contains("suggestion"));
         fs::remove_dir_all(root).expect("remove theme root");
     }
 

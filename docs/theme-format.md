@@ -115,3 +115,9 @@ Restrictions:
 - Must not hide, replace, or block real Codex controls
 
 The background image is exposed through `theme.json.image` and `var(--codeface-art)`.
+
+## CodexThemes packages
+
+CodeFace can install schema-version-1 `.codex-theme` packages from CodexThemes. It converts `displayName`, `palette`, `design.artFocalPoint`, CSS, and embedded artwork into the local CodeFace directory layout. The original market source, package version, and background scope are recorded under `theme.json.codexthemes`.
+
+Market CSS runs without the CodeFace base layout or decorative chrome. CodeFace adds only an incremental compatibility layer for current Codex page and component markers, responsive suggestion layout, and focal-point-aware content positioning. This keeps the market theme authoritative and avoids repeated DOM reconstruction.

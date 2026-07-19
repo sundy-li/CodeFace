@@ -53,3 +53,11 @@ CodeFace follows the operating system's preferred language until an explicit cho
 - **Close Codex** removes the CodeFace injection and closes Codex.
 - **Restart Codex** removes the injection and restarts Codex in its official mode.
 - Applying a theme again establishes a loopback-only CDP session.
+
+## Install from CodexThemes
+
+Open the **+** menu in the theme library, click **Install from CodexThemes**, enter a published theme ID or a `https://codexthemes.ai[/zh]/themes/<id>` detail-page URL, and click **Install**. CodeFace uses the official anonymous download endpoint, validates the `.codex-theme` package, converts its manifest, CSS, palette, and artwork into the CodeFace theme layout, and selects the installed theme. Applying it to Codex remains a separate explicit action.
+
+Only gallery entries published as installable `.codex-theme` packages are supported. Showcase skins and legacy archive packages must be handled through their market instructions.
+
+Market themes run in a dedicated compatibility mode: their own CSS remains authoritative, CodeFace supplies current Codex semantic markers incrementally, and artwork focal points keep home controls away from the primary subject. Existing market installations can be updated in place only when their recorded CodexThemes source matches the requested theme.

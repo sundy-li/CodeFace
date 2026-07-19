@@ -26,6 +26,10 @@ CodeFace does not modify:
 - CSS cannot contain network resources or dynamic imports.
 - Importing copies only recognized theme files.
 - State and settings are written through temporary files and atomic replacement.
+- CodexThemes downloads start at `https://codexthemes.ai` and may redirect only to trusted HTTPS hosts on the same domain.
+- Market packages are limited to 30 MiB, must use schema version 1, and must match the requested theme ID.
+- Market artwork is decoded and normalized locally; unsupported or external CSS assets are rejected.
+- An existing local theme is updated from the market only when its recorded CodexThemes source matches the requested ID.
 
 ## Deletion
 

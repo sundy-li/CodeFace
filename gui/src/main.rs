@@ -132,14 +132,18 @@ struct CodeFaceApp {
     busy: bool,
     settings_open: bool,
     codex_menu_open: bool,
+    add_theme_menu_open: bool,
     language: Language,
     appearance: Appearance,
     pending_delete: Option<String>,
+    codexthemes_open: bool,
+    codexthemes_error: Option<SharedString>,
     editing_source: bool,
     editing_id: Option<String>,
     draft_image: Option<PathBuf>,
     theme_json_editor: gpui::Entity<InputState>,
     css_editor: gpui::Entity<InputState>,
+    codexthemes_input: gpui::Entity<InputState>,
 }
 
 impl CodeFaceApp {
@@ -159,6 +163,10 @@ impl CodeFaceApp {
                 .line_number(true)
                 .default_value(theme::DEFAULT_CSS)
         });
+        let codexthemes_input = cx.new(|cx| {
+            InputState::new(window, cx)
+                .placeholder("portal-panic or https://codexthemes.ai/themes/portal-panic")
+        });
         let language = i18n::load();
         let appearance = i18n::load_appearance();
         let mut app = Self {
@@ -169,14 +177,18 @@ impl CodeFaceApp {
             busy: false,
             settings_open: false,
             codex_menu_open: false,
+            add_theme_menu_open: false,
             language,
             appearance,
             pending_delete: None,
+            codexthemes_open: false,
+            codexthemes_error: None,
             editing_source: false,
             editing_id: None,
             draft_image: None,
             theme_json_editor,
             css_editor,
+            codexthemes_input,
         };
         if let Err(error) = theme::install_bundled_themes() {
             app.status = Self::error_message(app.locale(), &error);
@@ -417,6 +429,7 @@ impl CodeFaceApp {
         self.reload();
         self.applied = self.detect_applied_theme();
         self.codex_menu_open = false;
+        self.add_theme_menu_open = false;
         self.pending_delete = None;
         cx.notify();
     }
@@ -440,6 +453,7 @@ impl CodeFaceApp {
             }
         };
         self.editing_source = true;
+        self.add_theme_menu_open = false;
         self.settings_open = false;
         self.editing_id = None;
         self.draft_image = None;
@@ -549,6 +563,7 @@ impl CodeFaceApp {
     }
 
     fn begin_import_pack(&mut self, cx: &mut Context<Self>) {
+        self.add_theme_menu_open = false;
         let title = t(self.locale(), "select_pack_dialog").to_owned();
         cx.spawn(async move |entity, cx| {
             let directory = theme::choose_pack(title).await;
@@ -572,6 +587,30 @@ impl CodeFaceApp {
             }
         })
         .detach();
+    }
+
+    fn begin_install_codexthemes(&mut self, cx: &mut Context<Self>) {
+        let input = self.codexthemes_input.read(cx).value().to_string();
+        let locale = self.locale();
+        self.codexthemes_error = None;
+        self.run_operation_async(
+            t(locale, "install_codexthemes"),
+            move || theme::install_from_codexthemes(&input),
+            move |app, result| match result {
+                Ok(id) => {
+                    app.reload();
+                    app.selected = Some(id);
+                    app.codexthemes_open = false;
+                    app.status = t(app.locale(), "codexthemes_installed").into();
+                }
+                Err(error) => {
+                    let message = Self::error_message(app.locale(), &error);
+                    app.status = message.clone();
+                    app.codexthemes_error = Some(message);
+                }
+            },
+            cx,
+        );
     }
 
     fn selected_id(&self) -> Result<String> {
@@ -1323,6 +1362,7 @@ impl Render for CodeFaceApp {
         let locale = self.locale();
         let palette = self.appearance.palette();
         let codex_menu_open = self.codex_menu_open;
+        let add_theme_menu_open = self.add_theme_menu_open;
         let show_apply_bar = !self.settings_open && !self.editing_source;
         let selection_is_applied = self.selected == self.applied
             || (self.selected.as_deref() == Some(SYSTEM_THEME_ID) && self.applied.is_none());
@@ -1911,6 +1951,7 @@ impl Render for CodeFaceApp {
                                 t(locale, "settings"),
                                 |app, _, cx| {
                                     app.codex_menu_open = !app.codex_menu_open;
+                                    app.add_theme_menu_open = false;
                                     cx.notify();
                                 },
                             )),
@@ -1944,6 +1985,7 @@ impl Render for CodeFaceApp {
                                     ))
                                     .child(
                                         div()
+                                            .relative()
                                             .flex()
                                             .items_center()
                                             .gap_2()
@@ -1956,10 +1998,15 @@ impl Render for CodeFaceApp {
                                             ))
                                             .child(icon_button(
                                                 cx,
-                                                "new-theme",
+                                                "add-theme-menu",
                                                 "icons/plus.svg",
                                                 t(locale, "new_theme"),
-                                                |app, window, cx| app.begin_new_source(window, cx),
+                                                |app, _, cx| {
+                                                    app.add_theme_menu_open =
+                                                        !app.add_theme_menu_open;
+                                                    app.codex_menu_open = false;
+                                                    cx.notify();
+                                                },
                                             )),
                                     ),
                             )
@@ -1972,10 +2019,7 @@ impl Render for CodeFaceApp {
                                     .flex_col()
                                     .gap_2()
                                     .children(cards),
-                            )
-                            .child(button(cx, t(locale, "import_pack"), false, |app, _, cx| {
-                                app.begin_import_pack(cx)
-                            })),
+                            ),
                     )
                     .child(detail_panel),
             )
@@ -2053,6 +2097,51 @@ impl Render for CodeFaceApp {
                                         })),
                                 ),
                         ),
+                )
+            })
+            .when(add_theme_menu_open, |root| {
+                root.child(
+                    div()
+                        .id("add-theme-dropdown")
+                        .absolute()
+                        .top(if cfg!(target_os = "macos") {
+                            px(152.)
+                        } else {
+                            px(114.)
+                        })
+                        .left(px(36.))
+                        .w(px(244.))
+                        .p_2()
+                        .rounded_lg()
+                        .border_1()
+                        .border_color(rgb(palette.border))
+                        .bg(rgb(palette.surface))
+                        .shadow_lg()
+                        .occlude()
+                        .flex()
+                        .flex_col()
+                        .gap_1()
+                        .child(button(
+                            cx,
+                            t(locale, "new_theme"),
+                            false,
+                            |app, window, cx| app.begin_new_source(window, cx),
+                        ))
+                        .child(button(cx, t(locale, "import_pack"), false, |app, _, cx| {
+                            app.begin_import_pack(cx)
+                        }))
+                        .child(button(
+                            cx,
+                            t(locale, "install_from_codexthemes"),
+                            false,
+                            |app, _, cx| {
+                                app.add_theme_menu_open = false;
+                                app.codexthemes_open = true;
+                                app.codexthemes_error = None;
+                                app.pending_delete = None;
+                                cx.notify();
+                            },
+                        )),
                 )
             })
             .when(codex_menu_open, |root| {
@@ -2156,6 +2245,92 @@ impl Render for CodeFaceApp {
                         ),
                 )
             })
+            .when(self.codexthemes_open, |root| {
+                root.child(
+                    div()
+                        .id("codexthemes-install-overlay")
+                        .absolute()
+                        .top_0()
+                        .left_0()
+                        .size_full()
+                        .occlude()
+                        .bg(rgba(0x080A0FCC))
+                        .flex()
+                        .items_center()
+                        .justify_center()
+                        .child(
+                            div()
+                                .id("codexthemes-install-dialog")
+                                .occlude()
+                                .w(px(520.))
+                                .p_6()
+                                .rounded_xl()
+                                .border_1()
+                                .border_color(rgb(palette.border))
+                                .bg(rgb(palette.surface))
+                                .flex()
+                                .flex_col()
+                                .gap_4()
+                                .child(
+                                    div()
+                                        .text_2xl()
+                                        .child(t(locale, "install_from_codexthemes")),
+                                )
+                                .child(
+                                    div()
+                                        .text_sm()
+                                        .text_color(rgb(palette.muted))
+                                        .child(t(locale, "codexthemes_install_help")),
+                                )
+                                .child(
+                                    div()
+                                        .h(px(42.))
+                                        .rounded_lg()
+                                        .overflow_hidden()
+                                        .child(Input::new(&self.codexthemes_input).h_full()),
+                                )
+                                .children(self.codexthemes_error.clone().map(|message| {
+                                    div()
+                                        .p_3()
+                                        .rounded_lg()
+                                        .bg(rgba(0x7F1D1DDD))
+                                        .text_sm()
+                                        .text_color(rgb(0xFECACA))
+                                        .child(message)
+                                }))
+                                .child(
+                                    div()
+                                        .text_xs()
+                                        .text_color(rgb(palette.muted))
+                                        .child("https://codexthemes.ai/zh"),
+                                )
+                                .child(
+                                    div()
+                                        .flex()
+                                        .justify_end()
+                                        .gap_2()
+                                        .child(button_with_id(
+                                            cx,
+                                            "cancel-codexthemes-install".into(),
+                                            t(locale, "cancel"),
+                                            false,
+                                            |app, _, cx| {
+                                                app.codexthemes_open = false;
+                                                app.codexthemes_error = None;
+                                                cx.notify();
+                                            },
+                                        ))
+                                        .child(button_with_id(
+                                            cx,
+                                            "confirm-codexthemes-install".into(),
+                                            t(locale, "install"),
+                                            true,
+                                            |app, _, cx| app.begin_install_codexthemes(cx),
+                                        )),
+                                ),
+                        ),
+                )
+            })
     }
 }
 
@@ -2179,6 +2354,13 @@ fn main() {
     }
     if let Some(command) = arguments.get(1).map(String::as_str) {
         let result: Option<Result<String>> = match command {
+            "--install-codexthemes" => Some((|| {
+                let source = arguments
+                    .get(2)
+                    .ok_or_else(|| anyhow!("Missing CodexThemes theme ID or URL"))?;
+                theme::install_from_codexthemes(source)
+                    .map(|id| format!("Installed CodexThemes theme: {id}"))
+            })()),
             "--import-theme" => Some((|| {
                 let source = arguments
                     .get(2)

@@ -164,9 +164,36 @@ html.codeface [class~="group/home-suggestions"] button[data-codeface-suggestion=
   }
 }
 `;
+  const CODEXTHEMES_COMPAT_CSS = `
+/* Bridge current Codex home controls to the semantic layout used by market previews. */
+:root[data-codexthemes-theme] [data-codeface-codexthemes-suggestions-grid] {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  max-width: 640px !important;
+}
+:root[data-codexthemes-theme][data-codeface-codexthemes-art-side="right"]
+  [data-codeface-codexthemes-content-lane] {
+  transform: translateX(clamp(-220px, -14vw, -96px)) !important;
+}
+:root[data-codexthemes-theme][data-codeface-codexthemes-art-side="left"]
+  [data-codeface-codexthemes-content-lane] {
+  transform: translateX(clamp(96px, 14vw, 220px)) !important;
+}
+@media (max-width: 760px) {
+  :root[data-codexthemes-theme] [data-codeface-codexthemes-suggestions-grid] {
+    grid-template-columns: 1fr !important;
+  }
+  :root[data-codexthemes-theme] [data-codeface-codexthemes-content-lane] {
+    transform: none !important;
+  }
+}
+`;
   const VERSION = __CODEFACE_VERSION_JSON__;
   const THEME =
     themeConfig && typeof themeConfig === "object" ? themeConfig : {};
+  const IS_CODEXTHEMES = Boolean(THEME.codexthemes?.source);
+  const styleText = IS_CODEXTHEMES
+    ? `${cssText}\n${CODEXTHEMES_COMPAT_CSS}`
+    : `${cssText}\n${SAFETY_CSS}`;
   const THEME_VARIABLES = [
     "--cf-bg",
     "--cf-panel",
@@ -229,6 +256,7 @@ html.codeface [class~="group/home-suggestions"] button[data-codeface-suggestion=
   if (previous?.observer) previous.observer.disconnect();
   if (previous?.timer) clearInterval(previous.timer);
   if (previous?.scheduler?.timeout) clearTimeout(previous.scheduler.timeout);
+  if (previous?.scheduler?.frame) cancelAnimationFrame(previous.scheduler.frame);
   if (previous?.resizeHandler)
     window.removeEventListener("resize", previous.resizeHandler);
   if (previous?.mediaHandler && previous?.mediaQuery) {
@@ -572,7 +600,7 @@ html.codeface [class~="group/home-suggestions"] button[data-codeface-suggestion=
 
   const existingStyle = document.getElementById(STYLE_ID);
   if (existingStyle) {
-    existingStyle.textContent = `${cssText}\n${SAFETY_CSS}`;
+    existingStyle.textContent = styleText;
     existingStyle.dataset.codefaceVersion = VERSION;
   }
 
@@ -583,23 +611,36 @@ html.codeface [class~="group/home-suggestions"] button[data-codeface-suggestion=
     const shell = detectShellMode();
     root.classList.add("codeface");
     root.setAttribute(SHELL_ATTR, shell);
-    root.style.setProperty("--codeface-art", `url("${artUrl}")`);
-    if (avatarUrl)
-      root.style.setProperty("--codeface-avatar", `url("${avatarUrl}")`);
-    else root.style.removeProperty("--codeface-avatar");
-    applyTheme(root, shell);
+    root.setAttribute("data-codexthemes-theme", THEME.id || "codeface");
     root.setAttribute(
-      "data-codeface-suggestions",
-      Array.isArray(THEME.suggestions) && THEME.suggestions.length === 0
-        ? "false"
-        : "true",
+      "data-codexthemes-background-scope",
+      THEME.codexthemes?.backgroundScope || "home",
     );
-    const chromeConfig = THEME.chrome || {};
-    for (const feature of ["brand", "status", "quote", "particles", "orbit"]) {
+    const artValue = `url("${artUrl}")`;
+    if (root.style.getPropertyValue("--codeface-art") !== artValue)
+      root.style.setProperty("--codeface-art", artValue);
+    if (avatarUrl) {
+      const avatarValue = `url("${avatarUrl}")`;
+      if (root.style.getPropertyValue("--codeface-avatar") !== avatarValue)
+        root.style.setProperty("--codeface-avatar", avatarValue);
+    } else if (root.style.getPropertyValue("--codeface-avatar")) {
+      root.style.removeProperty("--codeface-avatar");
+    }
+    if (!IS_CODEXTHEMES) {
+      applyTheme(root, shell);
       root.setAttribute(
-        `data-codeface-chrome-${feature}`,
-        chromeConfig[feature] === false ? "false" : "true",
+        "data-codeface-suggestions",
+        Array.isArray(THEME.suggestions) && THEME.suggestions.length === 0
+          ? "false"
+          : "true",
       );
+      const chromeConfig = THEME.chrome || {};
+      for (const feature of ["brand", "status", "quote", "particles", "orbit"]) {
+        root.setAttribute(
+          `data-codeface-chrome-${feature}`,
+          chromeConfig[feature] === false ? "false" : "true",
+        );
+      }
     }
 
     let style = document.getElementById(STYLE_ID);
@@ -609,7 +650,7 @@ html.codeface [class~="group/home-suggestions"] button[data-codeface-suggestion=
       (document.head || root).appendChild(style);
     }
     if (style.dataset.codefaceVersion !== VERSION) {
-      style.textContent = `${cssText}\n${SAFETY_CSS}`;
+      style.textContent = styleText;
       style.dataset.codefaceVersion = VERSION;
     }
 
@@ -631,6 +672,114 @@ html.codeface [class~="group/home-suggestions"] button[data-codeface-suggestion=
         ? shellMain
         : null;
     const home = classicHome || modernHome;
+    for (const candidate of document.querySelectorAll(
+      "main[data-codexthemes-page]",
+    )) {
+      if (candidate !== shellMain)
+        candidate.removeAttribute("data-codexthemes-page");
+    }
+    if (shellMain) {
+      const hasConversation = Boolean(
+        shellMain.querySelector(
+          '[data-thread-user-message-navigation-item-id], [data-thread-find-target="conversation"]',
+        ),
+      );
+      shellMain.setAttribute(
+        "data-codexthemes-page",
+        hasConversation ? "conversation" : home ? "home" : "system",
+      );
+    }
+    if (IS_CODEXTHEMES) {
+      const desiredSurfaces = new Map();
+      const markSurface = (node, surface) => {
+        if (!node) return;
+        desiredSurfaces.set(node, surface);
+        if (node.getAttribute("data-codexthemes-surface") !== surface)
+          node.setAttribute("data-codexthemes-surface", surface);
+        if (!node.hasAttribute("data-codeface-codexthemes-surface"))
+          node.setAttribute("data-codeface-codexthemes-surface", "true");
+      };
+      const suggestions = home?.querySelectorAll(
+          '.group\\/home-suggestions button, [class~="group/home-suggestion-list-item"]',
+        );
+      suggestions?.forEach((node) => markSurface(node, "suggestion"));
+      const suggestionsGrid = suggestions?.[0]?.parentElement?.parentElement || null;
+      if (
+        suggestionsGrid &&
+        !suggestionsGrid.hasAttribute("data-codeface-codexthemes-suggestions-grid")
+      )
+        suggestionsGrid.setAttribute(
+          "data-codeface-codexthemes-suggestions-grid",
+          "true",
+        );
+      let contentLane = suggestions?.[0]?.parentElement || null;
+      while (contentLane && contentLane !== home) {
+        if (contentLane.querySelector(".composer-surface-chrome")) break;
+        contentLane = contentLane.parentElement;
+      }
+      if (
+        contentLane &&
+        !contentLane.hasAttribute("data-codeface-codexthemes-content-lane")
+      )
+        contentLane.setAttribute("data-codeface-codexthemes-content-lane", "true");
+      const focalX = Number.parseFloat(
+        String(THEME.layout?.backgroundPosition || "50% 50%"),
+      );
+      const artSide = focalX > 55 ? "right" : focalX < 45 ? "left" : "center";
+      if (root.getAttribute("data-codeface-codexthemes-art-side") !== artSide)
+        root.setAttribute("data-codeface-codexthemes-art-side", artSide);
+      markSurface(
+        home?.querySelector(
+          '[data-testid="project-selector"], [class~="group/project-selector"]',
+        ),
+        "project-selector",
+      );
+      document
+        .querySelectorAll('[data-diff-type], [class*="diff-addition"], [class*="diff-deletion"]')
+        .forEach((node) => markSurface(node, "diff"));
+      document
+        .querySelectorAll('[data-codex-terminal="true"]')
+        .forEach((node) => markSurface(node, "terminal"));
+      document
+        .querySelectorAll("[data-codeface-codexthemes-surface]")
+        .forEach((node) => {
+          if (desiredSurfaces.has(node)) return;
+          node.removeAttribute("data-codexthemes-surface");
+          node.removeAttribute("data-codeface-codexthemes-surface");
+        });
+      document
+        .querySelectorAll("[data-codeface-codexthemes-suggestions-grid]")
+        .forEach((node) => {
+          if (node !== suggestionsGrid)
+            node.removeAttribute("data-codeface-codexthemes-suggestions-grid");
+        });
+      document
+        .querySelectorAll("[data-codeface-codexthemes-content-lane]")
+        .forEach((node) => {
+          if (node !== contentLane)
+            node.removeAttribute("data-codeface-codexthemes-content-lane");
+        });
+      root.classList.remove("codeface-home-route");
+      root.removeAttribute("data-codeface-suggestions");
+      for (const feature of ["brand", "status", "quote", "particles", "orbit"])
+        root.removeAttribute(`data-codeface-chrome-${feature}`);
+      document
+        .querySelectorAll(
+          ".codeface-home, .codeface-home-shell, .codeface-project-selector, .codeface-project-bar, .codeface-project-section, .codeface-composer-stack",
+        )
+        .forEach((node) => {
+          node.classList.remove(
+            "codeface-home",
+            "codeface-home-shell",
+            "codeface-project-selector",
+            "codeface-project-bar",
+            "codeface-project-section",
+            "codeface-composer-stack",
+          );
+        });
+      document.getElementById(CHROME_ID)?.remove();
+      return;
+    }
     for (const candidate of document.querySelectorAll(
       '[role="main"].codeface-home',
     )) {
@@ -727,6 +876,32 @@ html.codeface [class~="group/home-suggestions"] button[data-codeface-suggestion=
     document.documentElement?.removeAttribute(SHELL_ATTR);
     document.documentElement?.removeAttribute("data-codeface-hero-fit");
     document.documentElement?.removeAttribute("data-codeface-suggestions");
+    document.documentElement?.removeAttribute("data-codexthemes-theme");
+    document.documentElement?.removeAttribute(
+      "data-codexthemes-background-scope",
+    );
+    document.documentElement?.removeAttribute(
+      "data-codeface-codexthemes-art-side",
+    );
+    document
+      .querySelectorAll("[data-codexthemes-page]")
+      .forEach((node) => node.removeAttribute("data-codexthemes-page"));
+    document
+      .querySelectorAll("[data-codeface-codexthemes-surface]")
+      .forEach((node) => {
+        node.removeAttribute("data-codexthemes-surface");
+        node.removeAttribute("data-codeface-codexthemes-surface");
+      });
+    document
+      .querySelectorAll("[data-codeface-codexthemes-suggestions-grid]")
+      .forEach((node) =>
+        node.removeAttribute("data-codeface-codexthemes-suggestions-grid"),
+      );
+    document
+      .querySelectorAll("[data-codeface-codexthemes-content-lane]")
+      .forEach((node) =>
+        node.removeAttribute("data-codeface-codexthemes-content-lane"),
+      );
     for (const feature of ["brand", "status", "quote", "particles", "orbit"]) {
       document.documentElement?.removeAttribute(
         `data-codeface-chrome-${feature}`,
@@ -760,6 +935,7 @@ html.codeface [class~="group/home-suggestions"] button[data-codeface-suggestion=
     state?.observer?.disconnect();
     if (state?.timer) clearInterval(state.timer);
     if (state?.scheduler?.timeout) clearTimeout(state.scheduler.timeout);
+    if (state?.scheduler?.frame) cancelAnimationFrame(state.scheduler.frame);
     if (state?.resizeHandler)
       window.removeEventListener("resize", state.resizeHandler);
     if (state?.mediaHandler && state?.mediaQuery) {
@@ -773,15 +949,33 @@ html.codeface [class~="group/home-suggestions"] button[data-codeface-suggestion=
     return true;
   };
 
-  const scheduler = { timeout: null };
+  const scheduler = { timeout: null, frame: 0 };
   const scheduleEnsure = () => {
+    if (IS_CODEXTHEMES) {
+      if (scheduler.frame) return;
+      scheduler.frame = requestAnimationFrame(() => {
+        scheduler.frame = 0;
+        ensure();
+      });
+      return;
+    }
     if (scheduler.timeout) clearTimeout(scheduler.timeout);
     scheduler.timeout = setTimeout(() => {
       scheduler.timeout = null;
       ensure();
     }, 180);
   };
-  const observer = new MutationObserver(scheduleEnsure);
+  const observer = new MutationObserver((records) => {
+    if (
+      records.some(
+        (record) =>
+          record.type === "childList" ||
+          record.target === document.documentElement ||
+          record.target === document.body,
+      )
+    )
+      scheduleEnsure();
+  });
   observer.observe(document.documentElement, {
     childList: true,
     subtree: true,
@@ -791,10 +985,9 @@ html.codeface [class~="group/home-suggestions"] button[data-codeface-suggestion=
       "data-theme",
       "data-appearance",
       "data-color-mode",
-      "style",
     ],
   });
-  const timer = setInterval(ensure, 4000);
+  const timer = IS_CODEXTHEMES ? null : setInterval(ensure, 4000);
   const resizeHandler = scheduleEnsure;
   window.addEventListener("resize", resizeHandler, { passive: true });
 
