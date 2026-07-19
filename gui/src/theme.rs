@@ -19,17 +19,21 @@ const CODEXTHEMES_MAX_PREVIEW_SIZE: usize = 8 * 1024 * 1024;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct MarketTheme {
+    #[serde(default, deserialize_with = "deserialize_null_string")]
     pub id: String,
+    #[serde(default, deserialize_with = "deserialize_null_string")]
     pub name: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "deserialize_null_string")]
     pub description: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "deserialize_null_string")]
     pub author: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "deserialize_null_string")]
     pub mode: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "deserialize_null_string")]
     pub image: String,
+    #[serde(default, deserialize_with = "deserialize_null_string")]
     pub url: String,
+    #[serde(default, deserialize_with = "deserialize_null_string")]
     pub kind: String,
     pub installable: bool,
     #[serde(
@@ -57,7 +61,17 @@ where
 
 #[derive(Debug, Deserialize)]
 struct MarketResponse {
+    #[serde(default)]
     themes: Vec<MarketTheme>,
+}
+
+impl MarketResponse {
+    fn into_valid_themes(self) -> Vec<MarketTheme> {
+        self.themes
+            .into_iter()
+            .filter(|theme| !theme.id.trim().is_empty() && !theme.name.trim().is_empty())
+            .collect()
+    }
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -596,7 +610,7 @@ pub fn search_codexthemes(query: &str) -> Result<Vec<MarketTheme>> {
         .context("CodexThemes search failed")?
         .json()
         .context("CodexThemes search response is invalid")?;
-    Ok(response.themes)
+    Ok(response.into_valid_themes())
 }
 
 fn download_market_preview_into(
@@ -1182,22 +1196,38 @@ mod tests {
             }, {
                 "id": "showcase-only",
                 "name": "Showcase only",
+                "description": null,
+                "author": null,
+                "mode": null,
+                "image": null,
                 "url": "https://codexthemes.ai/themes/showcase-only",
-                "kind": "skin",
+                "kind": null,
                 "installable": false,
                 "downloadUrl": null
+            }, {
+                "id": null,
+                "name": null,
+                "url": null,
+                "kind": null,
+                "installable": false
             }]
         }))
         .expect("parse market response");
-        assert_eq!(response.themes.len(), 2);
-        assert!(response.themes[0].installable);
+        let themes = response.into_valid_themes();
+        assert_eq!(themes.len(), 2);
+        assert!(themes[0].installable);
         assert_eq!(
-            response.themes[0].download_url,
+            themes[0].download_url,
             "https://codexthemes.ai/api/themes/coast/download"
         );
-        assert!(response.themes[1].download_url.is_empty());
-        assert!(!response.themes[1].can_install());
-        let mut manual_theme = response.themes[0].clone();
+        assert!(themes[1].download_url.is_empty());
+        assert!(themes[1].description.is_empty());
+        assert!(themes[1].author.is_empty());
+        assert!(themes[1].mode.is_empty());
+        assert!(themes[1].image.is_empty());
+        assert!(themes[1].kind.is_empty());
+        assert!(!themes[1].can_install());
+        let mut manual_theme = themes[0].clone();
         manual_theme.installable = false;
         manual_theme.download_url.clear();
         assert!(manual_theme.can_install());
