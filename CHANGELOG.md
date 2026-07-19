@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.0 — 2026-07-19
+
+- Added the CodeFace Skill and a Skill-linked prompt workflow for AI-assisted theme refinement.
+- Redesigned the theme library with richer image-first cards, clearer actions, and explicit refresh and import flows.
+- Added high-fidelity full-workspace previews that closely mirror the live Codex layout.
+- Refined all five built-in themes with improved color balance, shared background and sidebar blending, and route-specific styling.
+- Improved light-appearance readability for configuration controls and theme surfaces.
+- Fixed project-selector and composer overlap with stable injected layout markers and spacing safeguards.
+
 ## 1.1.1 — 2026-07-18
 
 - Updated the Windows, dialog, WebSocket, and system-information dependencies.
