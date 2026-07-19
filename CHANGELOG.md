@@ -7,6 +7,7 @@
 - Added a complete market flow for search, large preview, install, and one-step install-and-apply without leaving the theme library.
 - Market install-and-apply now uses the existing runtime health gate and automatic rollback.
 - Added bounded manual-ZIP compatibility and artless-theme support so every published `kind=theme` market entry can install locally; showcase skins remain preview-only references.
+- Made market catalog parsing resilient to missing or `null` optional metadata, while isolating malformed entries without a usable ID or name.
 - Added `--preview-codexthemes` for preview download diagnostics.
 
 ## 1.4.0 — 2026-07-19
