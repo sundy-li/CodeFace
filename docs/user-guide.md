@@ -61,3 +61,19 @@ Open the **+** menu in the theme library, click **Install from CodexThemes**, en
 Only gallery entries published as installable `.codex-theme` packages are supported. Showcase skins and legacy archive packages must be handled through their market instructions.
 
 Market themes run in a dedicated compatibility mode: their own CSS remains authoritative, CodeFace supplies current Codex semantic markers incrementally, and artwork focal points keep home controls away from the primary subject. Existing market installations can be updated in place only when their recorded CodexThemes source matches the requested theme.
+
+## Browse and update market themes
+
+Enter a style or subject in the CodexThemes dialog and click **Search**. Results show the theme name, author, description, and whether the item is directly installable. Installed market themes expose **Check updates** and **Update** actions in the preview toolbar. Updating an active theme reapplies it and runs the same health gate as a manual switch.
+
+## Health checks and automatic rollback
+
+After every theme switch, CodeFace observes the real Codex renderer before reporting success. The report checks the expected theme ID, critical shell controls, sampled text contrast, and suggestion-tree stability. A failed report restores the previously active theme; when no previous theme is available, CodeFace restores the native appearance.
+
+Run the same check from a terminal with `codeface --health-check <theme-id> [port]`.
+
+## Backups, rollback, and export
+
+CodeFace creates persistent snapshots before editing, updating, deleting, or replacing a theme during rollback. Select **Rollback** to restore the newest snapshot. The version being replaced is backed up first, so rollback itself remains reversible.
+
+Select **Export** to create `exports/<theme-id>.codex-theme` under the CodeFace data directory. The exported schema-version-1 package contains the manifest, CSS, palette, focal point, and normalized PNG artwork.
