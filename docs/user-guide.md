@@ -56,7 +56,7 @@ CodeFace follows the operating system's preferred language until an explicit cho
 
 ## Install from CodexThemes
 
-Switch the theme library from **Local** to **Market**. CodeFace loads the full catalog immediately; search by style or subject to narrow it, then select a result to load its image in the main workspace without installing it. Click **Install** to add the validated package to the library, or **Install & apply** to install it, apply it to Codex, run the runtime health gate, and automatically roll back on failure. The **Local** view uses the same search area to filter installed themes by name, ID, or description. A published theme ID or `https://codexthemes.ai[/zh]/themes/<id>` detail-page URL can still be installed directly through the **+** menu.
+Switch the theme library from **Local** to **Market**. CodeFace loads the full catalog immediately; search by style or subject to narrow it, then select any result to load its image in the main workspace. Every published `kind=theme` entry can be installed locally, whether it uses the standard JSON package, a bounded manual ZIP, or no artwork. Click **Install** to add it to the library, or **Install & apply** to apply it, run the runtime health gate, and automatically roll back on failure. `kind=skin` entries are previewable design references whose market pages explicitly provide creation prompts instead of downloadable theme packages. The **Local** view uses the same search area to filter installed themes by name, ID, or description.
 
 The equivalent diagnostic commands are `--preview-codexthemes <id-or-url>`, `--install-codexthemes <id-or-url>`, and `--install-apply-codexthemes <id-or-url>`.
 

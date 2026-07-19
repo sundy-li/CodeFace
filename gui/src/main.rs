@@ -2173,7 +2173,7 @@ impl Render for CodeFaceApp {
             if let Some(market_theme) = market_main_preview_theme {
                 let install_id = market_theme.id.clone();
                 let apply_id = market_theme.id.clone();
-                let installable = market_theme.installable;
+                let installable = market_theme.can_install();
                 div()
                     .flex_1()
                     .p_5()
@@ -2905,7 +2905,7 @@ impl Render for CodeFaceApp {
                                         .children(self.market_results.clone().into_iter().map(
                                             |market_theme| {
                                                 let id = market_theme.id.clone();
-                                                let installable = market_theme.installable;
+                                                let installable = market_theme.can_install();
                                                 let preview_market_theme = market_theme.clone();
                                                 div()
                                                     .p_3()
@@ -2990,7 +2990,7 @@ impl Render for CodeFaceApp {
                                 }))
                                 .when_some(market_preview_theme, |dialog, market_theme| {
                                     let preview_id = market_theme.id.clone();
-                                    let installable = market_theme.installable;
+                                    let installable = market_theme.can_install();
                                     dialog.child(
                                         div()
                                             .id("codexthemes-market-preview")

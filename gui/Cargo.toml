@@ -20,6 +20,7 @@ sysinfo = "0.39"
 sys-locale = "0.3"
 tungstenite = { version = "0.30", features = ["rustls-tls-native-roots"] }
 url = "2"
+zip = { version = "4", default-features = false, features = ["deflate"] }
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61", features = [

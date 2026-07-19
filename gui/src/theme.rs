@@ -6,8 +6,9 @@ use image::{DynamicImage, GenericImageView, Rgba, RgbaImage};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{
+    collections::HashMap,
     fs,
-    io::Read,
+    io::{Cursor, Read},
     path::{Path, PathBuf},
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -39,6 +40,12 @@ pub struct MarketTheme {
     pub download_url: String,
     #[serde(default)]
     pub verified: bool,
+}
+
+impl MarketTheme {
+    pub fn can_install(&self) -> bool {
+        self.installable || self.kind == "theme"
+    }
 }
 
 fn deserialize_null_string<'de, D>(deserializer: D) -> std::result::Result<String, D::Error>
@@ -442,38 +449,42 @@ fn install_codexthemes_package_into(
     if css.len() > 256 * 1024 {
         bail!("CodexThemes theme CSS cannot exceed 256 KiB");
     }
-    let art = package
-        .get("art")
-        .and_then(Value::as_object)
-        .context("CodexThemes package is missing its artwork")?;
+    let art = package.get("art").and_then(Value::as_object);
+    if art.is_none() && manifest.get("art").is_some() {
+        bail!("CodexThemes manifest references missing artwork");
+    }
     let art_name = art
-        .get("filename")
+        .and_then(|art| art.get("filename"))
         .and_then(Value::as_str)
-        .context("CodexThemes artwork is missing its filename")?;
-    if Path::new(art_name)
+        .unwrap_or("background.png")
+        .to_owned();
+    if Path::new(&art_name)
         .file_name()
         .and_then(|value| value.to_str())
-        != Some(art_name)
+        != Some(art_name.as_str())
     {
         bail!("CodexThemes artwork filename must be a plain relative filename");
     }
     let manifest_art = manifest
         .get("art")
         .and_then(Value::as_str)
-        .unwrap_or(art_name);
-    let css = rewrite_codexthemes_art_urls(css, &[manifest_art, art_name])?;
-    let art_bytes = STANDARD
-        .decode(
-            art.get("base64")
-                .and_then(Value::as_str)
-                .context("CodexThemes artwork is missing its base64 data")?,
-        )
-        .context("CodexThemes artwork is not valid base64")?;
-    if art_bytes.len() > 16 * 1024 * 1024 {
-        bail!("CodexThemes artwork cannot exceed 16 MiB");
-    }
-    let artwork =
-        image::load_from_memory(&art_bytes).context("failed to decode CodexThemes artwork")?;
+        .unwrap_or(&art_name);
+    let css = rewrite_codexthemes_art_urls(css, &[manifest_art, &art_name])?;
+    let artwork = if let Some(art) = art {
+        let art_bytes = STANDARD
+            .decode(
+                art.get("base64")
+                    .and_then(Value::as_str)
+                    .context("CodexThemes artwork is missing its base64 data")?,
+            )
+            .context("CodexThemes artwork is not valid base64")?;
+        if art_bytes.len() > 16 * 1024 * 1024 {
+            bail!("CodexThemes artwork cannot exceed 16 MiB");
+        }
+        image::load_from_memory(&art_bytes).context("failed to decode CodexThemes artwork")?
+    } else {
+        DynamicImage::ImageRgba8(RgbaImage::from_pixel(1, 1, Rgba([255, 255, 255, 255])))
+    };
 
     let target = themes_root.join(id);
     if target.exists() {
@@ -673,6 +684,157 @@ pub fn preview_from_codexthemes(input: &str) -> Result<(MarketTheme, PathBuf)> {
     Ok((market_theme, path))
 }
 
+fn package_url_from_detail_html(html: &str) -> Result<reqwest::Url> {
+    let tail = ["\"packageUrl\":\"", "packageUrl:\""]
+        .into_iter()
+        .find_map(|marker| html.split_once(marker).map(|(_, tail)| tail))
+        .context("CodexThemes detail page does not expose a package URL")?;
+    let end = tail
+        .find('"')
+        .context("CodexThemes detail page package URL is malformed")?;
+    let encoded = format!("\"{}\"", &tail[..end]);
+    let value: String =
+        serde_json::from_str(&encoded).context("CodexThemes detail page package URL is invalid")?;
+    let url = reqwest::Url::parse(&value).context("CodexThemes package URL is invalid")?;
+    validate_codexthemes_https_url(&url, "package")?;
+    Ok(url)
+}
+
+fn download_manual_codexthemes_package(id: &str) -> Result<Vec<u8>> {
+    let detail_url = format!("{CODEXTHEMES_BASE_URL}/themes/{id}");
+    let response = reqwest::blocking::Client::builder()
+        .timeout(std::time::Duration::from_secs(20))
+        .build()?
+        .get(detail_url)
+        .header(reqwest::header::ACCEPT, "text/html")
+        .send()
+        .context("failed to load CodexThemes theme details")?
+        .error_for_status()
+        .context("CodexThemes theme detail request failed")?;
+    validate_codexthemes_https_url(response.url(), "detail page")?;
+    let mut html = Vec::new();
+    response.take(2 * 1024 * 1024 + 1).read_to_end(&mut html)?;
+    if html.len() > 2 * 1024 * 1024 {
+        bail!("CodexThemes detail page cannot exceed 2 MiB");
+    }
+    let html = std::str::from_utf8(&html).context("CodexThemes detail page is not UTF-8")?;
+    let package_url = package_url_from_detail_html(html)?;
+    let response = reqwest::blocking::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()?
+        .get(package_url)
+        .header(reqwest::header::ACCEPT, "application/json,application/zip")
+        .send()
+        .context("failed to download CodexThemes manual package")?
+        .error_for_status()
+        .context("CodexThemes manual package download failed")?;
+    validate_codexthemes_https_url(response.url(), "package redirect")?;
+    if response
+        .content_length()
+        .is_some_and(|length| length > CODEXTHEMES_MAX_PACKAGE_SIZE as u64)
+    {
+        bail!("CodexThemes package cannot exceed 30 MiB");
+    }
+    let mut bytes = Vec::new();
+    response
+        .take(CODEXTHEMES_MAX_PACKAGE_SIZE as u64 + 1)
+        .read_to_end(&mut bytes)?;
+    if bytes.len() > CODEXTHEMES_MAX_PACKAGE_SIZE {
+        bail!("CodexThemes package cannot exceed 30 MiB");
+    }
+    Ok(bytes)
+}
+
+fn archive_codexthemes_package(bytes: &[u8], requested_id: &str) -> Result<Vec<u8>> {
+    let mut archive = zip::ZipArchive::new(Cursor::new(bytes))
+        .context("CodexThemes manual package is not a valid ZIP archive")?;
+    if archive.len() > 256 {
+        bail!("CodexThemes archive cannot contain more than 256 entries");
+    }
+    let mut files = HashMap::<String, Vec<u8>>::new();
+    let mut total = 0_u64;
+    for index in 0..archive.len() {
+        let mut entry = archive.by_index(index)?;
+        if entry.is_dir() {
+            continue;
+        }
+        let enclosed = entry
+            .enclosed_name()
+            .context("CodexThemes archive contains an unsafe path")?;
+        let name = enclosed.to_string_lossy().replace('\\', "/");
+        total = total.saturating_add(entry.size());
+        if total > CODEXTHEMES_MAX_PACKAGE_SIZE as u64 {
+            bail!("CodexThemes archive expands beyond 30 MiB");
+        }
+        let mut data = Vec::new();
+        entry
+            .by_ref()
+            .take(CODEXTHEMES_MAX_PACKAGE_SIZE as u64 + 1)
+            .read_to_end(&mut data)?;
+        if data.len() as u64 != entry.size() {
+            bail!("CodexThemes archive entry exceeds its declared size");
+        }
+        files.insert(name, data);
+    }
+    let manifest_path = files
+        .keys()
+        .find(|name| name.as_str() == "theme.json" || name.ends_with("/theme.json"))
+        .cloned()
+        .context("CodexThemes archive is missing theme.json")?;
+    let manifest: Value = serde_json::from_slice(&files[&manifest_path])
+        .context("CodexThemes archive theme.json is invalid")?;
+    if manifest.get("id").and_then(Value::as_str) != Some(requested_id) {
+        bail!("CodexThemes archive ID does not match the requested theme");
+    }
+    let root = manifest_path.strip_suffix("theme.json").unwrap_or_default();
+    let relative_file = |key: &str| -> Result<(&str, &Vec<u8>)> {
+        let relative = manifest
+            .get(key)
+            .and_then(Value::as_str)
+            .with_context(|| format!("CodexThemes archive manifest is missing {key}"))?;
+        let path = Path::new(relative);
+        if path.is_absolute()
+            || path
+                .components()
+                .any(|part| matches!(part, std::path::Component::ParentDir))
+        {
+            bail!("CodexThemes archive manifest contains an unsafe {key} path");
+        }
+        let full = format!("{root}{}", relative.trim_start_matches("./"));
+        let data = files
+            .get(&full)
+            .with_context(|| format!("CodexThemes archive is missing {relative}"))?;
+        Ok((relative, data))
+    };
+    let (_, css_bytes) = relative_file("css")?;
+    let (art_name, art_bytes) = relative_file("art")?;
+    let css = std::str::from_utf8(css_bytes).context("CodexThemes archive CSS is not UTF-8")?;
+    let art_filename = Path::new(art_name)
+        .file_name()
+        .and_then(|name| name.to_str())
+        .context("CodexThemes archive artwork filename is invalid")?;
+    let package = serde_json::json!({
+        "format": "codex-theme",
+        "schemaVersion": 1,
+        "manifest": manifest,
+        "css": css,
+        "art": {
+            "filename": art_filename,
+            "mimeType": "image/png",
+            "base64": STANDARD.encode(art_bytes)
+        }
+    });
+    Ok(serde_json::to_vec(&package)?)
+}
+
+fn normalize_codexthemes_package(bytes: Vec<u8>, requested_id: &str) -> Result<Vec<u8>> {
+    if bytes.starts_with(b"PK\x03\x04") {
+        archive_codexthemes_package(&bytes, requested_id)
+    } else {
+        Ok(bytes)
+    }
+}
+
 fn download_codexthemes_package(id: &str) -> Result<Vec<u8>> {
     let endpoint = format!("{CODEXTHEMES_BASE_URL}/api/themes/{id}/download");
     let response = reqwest::blocking::Client::builder()
@@ -689,6 +851,9 @@ fn download_codexthemes_package(id: &str) -> Result<Vec<u8>> {
         bail!(
             "CodexThemes anonymous download quota is exhausted; configure an API key with the official installer or try again later"
         );
+    }
+    if response.url().path().starts_with("/sign-in") {
+        return normalize_codexthemes_package(download_manual_codexthemes_package(id)?, id);
     }
     let response = response
         .error_for_status()
@@ -713,7 +878,7 @@ fn download_codexthemes_package(id: &str) -> Result<Vec<u8>> {
     if bytes.len() > CODEXTHEMES_MAX_PACKAGE_SIZE {
         bail!("CodexThemes package cannot exceed 30 MiB");
     }
-    Ok(bytes)
+    normalize_codexthemes_package(bytes, id)
 }
 
 fn package_version(bytes: &[u8]) -> Result<String> {
@@ -970,6 +1135,7 @@ pub async fn choose_pack(title: String) -> Option<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Write;
 
     #[test]
     fn validates_theme_and_normalizes_id() {
@@ -1030,6 +1196,11 @@ mod tests {
             "https://codexthemes.ai/api/themes/coast/download"
         );
         assert!(response.themes[1].download_url.is_empty());
+        assert!(!response.themes[1].can_install());
+        let mut manual_theme = response.themes[0].clone();
+        manual_theme.installable = false;
+        manual_theme.download_url.clear();
+        assert!(manual_theme.can_install());
     }
 
     #[test]
@@ -1057,6 +1228,26 @@ mod tests {
     }
 
     #[test]
+    fn detail_page_package_url_is_extracted_and_restricted() {
+        let html = r#"<script>theme={"packageUrl":"https://cdn.codexthemes.ai/uploads/theme.zip"}</script>"#;
+        assert_eq!(
+            package_url_from_detail_html(html)
+                .expect("extract package URL")
+                .as_str(),
+            "https://cdn.codexthemes.ai/uploads/theme.zip"
+        );
+        let flight_data = r#"theme={packageUrl:"https://cdn.codexthemes.ai/uploads/manual.zip"}"#;
+        assert_eq!(
+            package_url_from_detail_html(flight_data)
+                .expect("extract flight-data package URL")
+                .as_str(),
+            "https://cdn.codexthemes.ai/uploads/manual.zip"
+        );
+        let external = r#"{"packageUrl":"https://example.com/theme.zip"}"#;
+        assert!(package_url_from_detail_html(external).is_err());
+    }
+
+    #[test]
     fn market_preview_is_normalized_to_png() {
         let source = DynamicImage::ImageRgba8(RgbaImage::from_pixel(3, 2, Rgba([12, 34, 56, 255])));
         let mut jpeg = Vec::new();
@@ -1073,6 +1264,62 @@ mod tests {
                 .expect("decode normalized preview")
                 .dimensions(),
             (3, 2)
+        );
+    }
+
+    #[test]
+    fn manual_zip_theme_is_converted_to_codextheme_package() {
+        let mut artwork = Vec::new();
+        DynamicImage::ImageRgba8(RgbaImage::from_pixel(2, 2, Rgba([3, 4, 5, 255])))
+            .write_to(&mut Cursor::new(&mut artwork), image::ImageFormat::Png)
+            .expect("encode artwork");
+        let manifest = serde_json::json!({
+            "schemaVersion": 1,
+            "id": "manual-archive",
+            "displayName": "Manual Archive",
+            "description": "ZIP fixture",
+            "version": "1.0.0",
+            "css": "theme.css",
+            "art": "assets/artwork.png",
+            "palette": {"canvas":"#111111","text":"#ffffff"}
+        });
+        let cursor = Cursor::new(Vec::new());
+        let mut writer = zip::ZipWriter::new(cursor);
+        let options = zip::write::SimpleFileOptions::default()
+            .compression_method(zip::CompressionMethod::Stored);
+        writer
+            .start_file("manual-archive/theme.json", options)
+            .expect("start manifest");
+        writer
+            .write_all(
+                serde_json::to_string(&manifest)
+                    .expect("manifest JSON")
+                    .as_bytes(),
+            )
+            .expect("write manifest");
+        writer
+            .start_file("manual-archive/theme.css", options)
+            .expect("start CSS");
+        writer
+            .write_all(b":root { color: white; }")
+            .expect("write CSS");
+        writer
+            .start_file("manual-archive/assets/artwork.png", options)
+            .expect("start artwork");
+        writer.write_all(&artwork).expect("write artwork");
+        let archive = writer.finish().expect("finish archive").into_inner();
+
+        let package =
+            archive_codexthemes_package(&archive, "manual-archive").expect("convert ZIP package");
+        let value: Value = serde_json::from_slice(&package).expect("parse converted package");
+        assert_eq!(value["format"], "codex-theme");
+        assert_eq!(value["manifest"]["id"], "manual-archive");
+        assert_eq!(value["css"], ":root { color: white; }");
+        assert!(
+            !value["art"]["base64"]
+                .as_str()
+                .unwrap_or_default()
+                .is_empty()
         );
     }
 
@@ -1235,6 +1482,40 @@ mod tests {
         .expect("parse updated manifest");
         assert_eq!(updated["name"], "Market Test Updated");
         fs::remove_dir_all(root).expect("remove test root");
+    }
+
+    #[test]
+    fn installs_artless_codexthemes_package_with_plain_fallback() {
+        let root = std::env::temp_dir().join(format!(
+            "codeface-artless-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("clock")
+                .as_nanos()
+        ));
+        let package = serde_json::json!({
+            "format": "codex-theme",
+            "schemaVersion": 1,
+            "manifest": {
+                "id": "artless-test",
+                "displayName": "Artless Test",
+                "version": "1.0.0",
+                "css": "theme.css",
+                "palette": {"canvas":"#f7fbfe","text":"#071a2c"}
+            },
+            "css": ":root[data-codexthemes-theme=\"artless-test\"] { color: #071a2c; }"
+        });
+        install_codexthemes_package_into(
+            &serde_json::to_vec(&package).expect("encode package"),
+            "artless-test",
+            &root,
+        )
+        .expect("install artless package");
+        let image =
+            image::open(root.join("artless-test/background.png")).expect("decode fallback artwork");
+        assert_eq!(image.dimensions(), (1, 1));
+        fs::remove_dir_all(root).expect("remove artless root");
     }
 
     #[test]
