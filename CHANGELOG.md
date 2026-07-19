@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.1 — 2026-07-20
+
+- Fixed misleading install actions for CodexThemes skin references that provide only a preview image and no downloadable theme package.
+- Skin references now display an explicit **Reference only** badge, while published themes keep the normal install and install-and-apply actions.
+
 ## 1.5.0 — 2026-07-19
 
 - Added first-class **Local** and **Market** library views, both with search; Market loads the full catalog on entry.

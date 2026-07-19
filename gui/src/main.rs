@@ -2174,6 +2174,42 @@ impl Render for CodeFaceApp {
                 let install_id = market_theme.id.clone();
                 let apply_id = market_theme.id.clone();
                 let installable = market_theme.can_install();
+                let market_actions: AnyElement = if installable {
+                    div()
+                        .flex()
+                        .gap_2()
+                        .child(button_with_id(
+                            cx,
+                            format!("market-main-install-{install_id}").into(),
+                            t(locale, "install"),
+                            true,
+                            move |app, _, cx| {
+                                app.begin_install_codexthemes_value(install_id.clone(), false, cx);
+                            },
+                        ))
+                        .child(button_with_id(
+                            cx,
+                            format!("market-main-apply-{apply_id}").into(),
+                            t(locale, "install_and_apply"),
+                            true,
+                            move |app, _, cx| {
+                                app.begin_install_codexthemes_value(apply_id.clone(), true, cx);
+                            },
+                        ))
+                        .into_any_element()
+                } else {
+                    div()
+                        .px_4()
+                        .py_2()
+                        .rounded_lg()
+                        .bg(rgb(palette.surface))
+                        .border_1()
+                        .border_color(rgb(palette.border))
+                        .text_sm()
+                        .text_color(rgb(palette.muted))
+                        .child(t(locale, "not_installable"))
+                        .into_any_element()
+                };
                 div()
                     .flex_1()
                     .p_5()
@@ -2202,41 +2238,7 @@ impl Render for CodeFaceApp {
                                         format!("{} · {}", market_theme.author, market_theme.mode),
                                     )),
                             )
-                            .child(
-                                div()
-                                    .flex()
-                                    .gap_2()
-                                    .child(button_with_id(
-                                        cx,
-                                        format!("market-main-install-{install_id}").into(),
-                                        t(locale, "install"),
-                                        installable,
-                                        move |app, _, cx| {
-                                            if installable {
-                                                app.begin_install_codexthemes_value(
-                                                    install_id.clone(),
-                                                    false,
-                                                    cx,
-                                                );
-                                            }
-                                        },
-                                    ))
-                                    .child(button_with_id(
-                                        cx,
-                                        format!("market-main-apply-{apply_id}").into(),
-                                        t(locale, "install_and_apply"),
-                                        installable,
-                                        move |app, _, cx| {
-                                            if installable {
-                                                app.begin_install_codexthemes_value(
-                                                    apply_id.clone(),
-                                                    true,
-                                                    cx,
-                                                );
-                                            }
-                                        },
-                                    )),
-                            ),
+                            .child(market_actions),
                     )
                     .child(
                         div()
