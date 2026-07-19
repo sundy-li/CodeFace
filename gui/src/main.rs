@@ -814,12 +814,22 @@ impl CodeFaceApp {
         );
     }
 
-    fn set_library_view(&mut self, view: LibraryView, cx: &mut Context<Self>) {
+    fn set_library_view(&mut self, view: LibraryView, window: &mut Window, cx: &mut Context<Self>) {
+        if self.library_view == view {
+            return;
+        }
         self.library_view = view;
+        self.library_query.clear();
+        self.library_search_input
+            .update(cx, |input, cx| input.set_value("", window, cx));
         self.market_preview_theme = None;
         self.market_preview_image = None;
         self.codexthemes_error = None;
-        cx.notify();
+        if view == LibraryView::Market {
+            self.begin_search_codexthemes_query(String::new(), cx);
+        } else {
+            cx.notify();
+        }
     }
 
     fn begin_library_search(&mut self, cx: &mut Context<Self>) {
@@ -2496,14 +2506,26 @@ impl Render for CodeFaceApp {
                                         "library-local-tab".into(),
                                         t(locale, "local_themes"),
                                         self.library_view == LibraryView::Local,
-                                        |app, _, cx| app.set_library_view(LibraryView::Local, cx),
+                                        |app, window, cx| {
+                                            app.set_library_view(
+                                                LibraryView::Local,
+                                                window,
+                                                cx,
+                                            )
+                                        },
                                     ))
                                     .child(button_with_id(
                                         cx,
                                         "library-market-tab".into(),
                                         t(locale, "theme_market"),
                                         self.library_view == LibraryView::Market,
-                                        |app, _, cx| app.set_library_view(LibraryView::Market, cx),
+                                        |app, window, cx| {
+                                            app.set_library_view(
+                                                LibraryView::Market,
+                                                window,
+                                                cx,
+                                            )
+                                        },
                                     )),
                             )
                             .child(

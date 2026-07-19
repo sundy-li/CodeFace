@@ -31,10 +31,21 @@ pub struct MarketTheme {
     pub url: String,
     pub kind: String,
     pub installable: bool,
-    #[serde(rename = "downloadUrl", default)]
+    #[serde(
+        rename = "downloadUrl",
+        default,
+        deserialize_with = "deserialize_null_string"
+    )]
     pub download_url: String,
     #[serde(default)]
     pub verified: bool,
+}
+
+fn deserialize_null_string<'de, D>(deserializer: D) -> std::result::Result<String, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    Ok(Option::<String>::deserialize(deserializer)?.unwrap_or_default())
 }
 
 #[derive(Debug, Deserialize)]
@@ -567,7 +578,7 @@ pub fn search_codexthemes(query: &str) -> Result<Vec<MarketTheme>> {
         .timeout(std::time::Duration::from_secs(15))
         .build()?
         .get(format!("{CODEXTHEMES_BASE_URL}/api/themes"))
-        .query(&[("q", query.trim()), ("limit", "20")])
+        .query(&[("q", query.trim()), ("limit", "100")])
         .send()
         .context("failed to search CodexThemes")?
         .error_for_status()
@@ -1002,15 +1013,23 @@ mod tests {
                 "installable": true,
                 "downloadUrl": "https://codexthemes.ai/api/themes/coast/download",
                 "verified": true
+            }, {
+                "id": "showcase-only",
+                "name": "Showcase only",
+                "url": "https://codexthemes.ai/themes/showcase-only",
+                "kind": "skin",
+                "installable": false,
+                "downloadUrl": null
             }]
         }))
         .expect("parse market response");
-        assert_eq!(response.themes.len(), 1);
+        assert_eq!(response.themes.len(), 2);
         assert!(response.themes[0].installable);
         assert_eq!(
             response.themes[0].download_url,
             "https://codexthemes.ai/api/themes/coast/download"
         );
+        assert!(response.themes[1].download_url.is_empty());
     }
 
     #[test]

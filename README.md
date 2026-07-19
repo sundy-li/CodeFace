@@ -63,7 +63,7 @@ background.png
 
 The template is available in [`resources/theme-pack-template`](resources/theme-pack-template). Double-click a theme in the theme list to edit its source directly.
 
-The theme library has two searchable views: **Local** filters installed themes by name, ID, or description; **Theme market** searches CodexThemes by style or subject. Select a market result to load its large preview in the main workspace without installing it. Choose **Install** to add it to the library, or **Install & apply** to install it, apply it to Codex, run the runtime health gate, and roll back automatically if verification fails. The **+** menu still accepts a theme ID such as `portal-panic` or its `https://codexthemes.ai/themes/<id>` URL for direct installation. Listings marked as skins or non-installable archives are not supported by this flow.
+The theme library has two searchable views: **Local** filters installed themes by name, ID, or description; **Market** loads the full CodexThemes catalog on entry and can search it by style or subject. Select a market result to load its large preview in the main workspace without installing it. Choose **Install** to add it to the library, or **Install & apply** to install it, apply it to Codex, run the runtime health gate, and roll back automatically if verification fails. The **+** menu still accepts a theme ID such as `portal-panic` or its `https://codexthemes.ai/themes/<id>` URL for direct installation. Listings marked as skins or non-installable archives are not supported by this flow.
 
 ## Codex Skill
 

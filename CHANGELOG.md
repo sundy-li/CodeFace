@@ -2,7 +2,7 @@
 
 ## 1.5.0 — 2026-07-19
 
-- Added first-class **Local** and **Theme market** library views, both with search.
+- Added first-class **Local** and **Market** library views, both with search; Market loads the full catalog on entry.
 - Added in-app CodexThemes preview images with bounded, trusted-HTTPS downloads and local PNG normalization.
 - Added a complete market flow for search, large preview, install, and one-step install-and-apply without leaving the theme library.
 - Market install-and-apply now uses the existing runtime health gate and automatic rollback.
