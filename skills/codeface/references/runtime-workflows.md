@@ -43,8 +43,10 @@ Use the CodeFace UI import action for portable packs, or import an already extra
 directory with `codeface --import-theme <directory>`. Never extract untrusted archives
 with unrestricted paths; rely on CodeFace's validated, bounded, atomic storage path.
 
-Search the market with `codeface --search-codexthemes <query>`, install with
-`--install-codexthemes <id-or-url>`, and check versions with
+Search the market with `codeface --search-codexthemes <query>`, cache a bounded
+preview with `--preview-codexthemes <id-or-url>`, install with
+`--install-codexthemes <id-or-url>`, install and immediately verify with
+`--install-apply-codexthemes <id-or-url>`, and check versions with
 `--check-theme-update <id>`. CodeFace snapshots an existing market copy before update.
 Use `--list-theme-backups <id>` and `--rollback-theme <id>` for history, and
 `--export-theme <id>` to create a portable `.codex-theme` package.

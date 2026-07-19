@@ -21,8 +21,9 @@ Use CodeFace as the sole theme runtime. Never modify the official Codex app,
 
 - **Create or redesign:** derive a concise design contract from the user's image or
   brief, create a theme in the CodeFace data root, then validate and preview it.
-- **Import or market install:** use the CodeFace add-theme menu, `--import-theme
-  <directory>`, or `--search-codexthemes` followed by `--install-codexthemes <id>`.
+- **Import or market install:** use the CodeFace add-theme menu to search, preview,
+  install, or install-and-apply; use `--import-theme <directory>`, or
+  `--search-codexthemes`, `--preview-codexthemes`, and `--install-codexthemes <id>`.
 - **Apply or switch:** use `--apply-theme <id>`, preserve the current Codex session,
   and hot-apply over loopback CDP whenever it is already available. Ask before
   restarting Codex.

@@ -56,7 +56,9 @@ CodeFace follows the operating system's preferred language until an explicit cho
 
 ## Install from CodexThemes
 
-Open the **+** menu in the theme library, click **Install from CodexThemes**, enter a published theme ID or a `https://codexthemes.ai[/zh]/themes/<id>` detail-page URL, and click **Install**. CodeFace uses the official anonymous download endpoint, validates the `.codex-theme` package, converts its manifest, CSS, palette, and artwork into the CodeFace theme layout, and selects the installed theme. Applying it to Codex remains a separate explicit action.
+Switch the theme library from **Local** to **Theme market**. Search by style or subject, then select a result to load its image in the main CodeFace workspace without installing it. Click **Install** to add the validated package to the library, or **Install & apply** to install it, apply it to Codex, run the runtime health gate, and automatically roll back on failure. The **Local** view uses the same search area to filter installed themes by name, ID, or description. A published theme ID or `https://codexthemes.ai[/zh]/themes/<id>` detail-page URL can still be installed directly through the **+** menu.
+
+The equivalent diagnostic commands are `--preview-codexthemes <id-or-url>`, `--install-codexthemes <id-or-url>`, and `--install-apply-codexthemes <id-or-url>`.
 
 Only gallery entries published as installable `.codex-theme` packages are supported. Showcase skins and legacy archive packages must be handled through their market instructions.
 
@@ -64,7 +66,7 @@ Market themes run in a dedicated compatibility mode: their own CSS remains autho
 
 ## Browse and update market themes
 
-Enter a style or subject in the CodexThemes dialog and click **Search**. Results show the theme name, author, description, and whether the item is directly installable. Installed market themes expose **Check updates** and **Update** actions in the preview toolbar. Updating an active theme reapplies it and runs the same health gate as a manual switch.
+Enter a style or subject in the CodexThemes dialog and click **Search**. Results show the theme name, author, description, and whether the item is directly installable. **Preview** loads a bounded local PNG copy of the marketplace image. Installed market themes expose **Check updates** and **Update** actions in the preview toolbar. Updating an active theme reapplies it and runs the same health gate as a manual switch.
 
 ## Health checks and automatic rollback
 

@@ -37,7 +37,7 @@ Security invariants:
 
 `HealthReport` is the shared post-apply contract between CLI and GUI. It samples each live Codex renderer through the loopback CDP client and records page identity, theme identity, critical-control visibility, text contrast, and suggestion stability before a switch is committed.
 
-Theme history is stored under the CodeFace data root in `backups/<theme-id>/`; portable exports use `exports/<theme-id>.codex-theme`. Market discovery and package download remain separate operations so browsing never mutates the local library.
+Theme history is stored under the CodeFace data root in `backups/<theme-id>/`; portable exports use `exports/<theme-id>.codex-theme`. Market discovery and package download remain separate operations so browsing never mutates the local library. Marketplace artwork previews are independently validated, normalized, and atomically cached under `market-previews/<theme-id>.png`; previewing does not install or activate a theme.
 
 ## Language selection
 

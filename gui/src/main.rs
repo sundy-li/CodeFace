@@ -80,11 +80,25 @@ struct ThemeSummary {
     has_background_image: bool,
 }
 
+fn theme_matches_query(theme: &ThemeSummary, query: &str) -> bool {
+    let query = query.trim().to_lowercase();
+    query.is_empty()
+        || theme.id.to_lowercase().contains(&query)
+        || theme.name.to_lowercase().contains(&query)
+        || theme.description.to_lowercase().contains(&query)
+}
+
 const SYSTEM_THEME_ID: &str = "__codeface-system-theme__";
 const PREVIEW_PROJECT_PANEL_MIN_HEIGHT: f32 = 64.;
 const PREVIEW_PROJECT_COMPOSER_GAP: f32 = 10.;
 const _: () = assert!(PREVIEW_PROJECT_PANEL_MIN_HEIGHT >= 60.);
 const _: () = assert!(PREVIEW_PROJECT_COMPOSER_GAP >= 8.);
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum LibraryView {
+    Local,
+    Market,
+}
 
 #[derive(Clone, Copy)]
 struct AppPalette {
@@ -140,12 +154,17 @@ struct CodeFaceApp {
     codexthemes_open: bool,
     codexthemes_error: Option<SharedString>,
     market_results: Vec<theme::MarketTheme>,
+    market_preview_theme: Option<theme::MarketTheme>,
+    market_preview_image: Option<PathBuf>,
+    library_view: LibraryView,
+    library_query: String,
     editing_source: bool,
     editing_id: Option<String>,
     draft_image: Option<PathBuf>,
     theme_json_editor: gpui::Entity<InputState>,
     css_editor: gpui::Entity<InputState>,
     codexthemes_input: gpui::Entity<InputState>,
+    library_search_input: gpui::Entity<InputState>,
 }
 
 fn apply_theme_checked(
@@ -215,6 +234,12 @@ fn install_codexthemes_checked(input: &str) -> Result<String> {
     Ok(id)
 }
 
+fn install_and_apply_codexthemes_checked(input: &str) -> Result<String> {
+    let id = theme::install_from_codexthemes(input)?;
+    apply_theme_checked(&id, false)?;
+    Ok(id)
+}
+
 fn rollback_theme_checked(id: &str) -> Result<theme::BackupInfo> {
     let is_applied = fs::read_to_string(paths::state_path()?)
         .ok()
@@ -232,6 +257,7 @@ impl CodeFaceApp {
         format!("{}: {error:#}", t(locale, "operation_failed")).into()
     }
     fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
+        let language = i18n::load();
         let theme_json_editor = cx.new(|cx| {
             InputState::new(window, cx)
                 .code_editor("json")
@@ -248,7 +274,10 @@ impl CodeFaceApp {
             InputState::new(window, cx)
                 .placeholder("portal-panic or https://codexthemes.ai/themes/portal-panic")
         });
-        let language = i18n::load();
+        let library_search_input = cx.new(|cx| {
+            InputState::new(window, cx)
+                .placeholder(t(language.effective(), "search_themes_placeholder"))
+        });
         let appearance = i18n::load_appearance();
         let mut app = Self {
             themes: Vec::new(),
@@ -265,12 +294,17 @@ impl CodeFaceApp {
             codexthemes_open: false,
             codexthemes_error: None,
             market_results: Vec::new(),
+            market_preview_theme: None,
+            market_preview_image: None,
+            library_view: LibraryView::Local,
+            library_query: String::new(),
             editing_source: false,
             editing_id: None,
             draft_image: None,
             theme_json_editor,
             css_editor,
             codexthemes_input,
+            library_search_input,
         };
         if let Err(error) = theme::install_bundled_themes() {
             app.status = Self::error_message(app.locale(), &error);
@@ -666,23 +700,83 @@ impl CodeFaceApp {
 
     fn begin_install_codexthemes(&mut self, cx: &mut Context<Self>) {
         let input = self.codexthemes_input.read(cx).value().to_string();
-        self.begin_install_codexthemes_value(input, cx);
+        self.begin_install_codexthemes_value(input, false, cx);
     }
 
-    fn begin_install_codexthemes_value(&mut self, input: String, cx: &mut Context<Self>) {
+    fn begin_install_codexthemes_value(
+        &mut self,
+        input: String,
+        apply: bool,
+        cx: &mut Context<Self>,
+    ) {
         let locale = self.locale();
         self.codexthemes_error = None;
         self.run_operation_async(
-            t(locale, "install_codexthemes"),
-            move || install_codexthemes_checked(&input),
+            if apply {
+                t(locale, "install_and_apply_market_theme")
+            } else {
+                t(locale, "install_codexthemes")
+            },
+            move || {
+                if apply {
+                    install_and_apply_codexthemes_checked(&input)
+                } else {
+                    install_codexthemes_checked(&input)
+                }
+            },
             move |app, result| match result {
                 Ok(id) => {
                     app.reload();
-                    app.selected = Some(id);
+                    app.selected = Some(id.clone());
+                    if apply {
+                        app.applied = Some(id);
+                    }
                     app.codexthemes_open = false;
-                    app.status = t(app.locale(), "codexthemes_installed").into();
+                    app.status = t(
+                        app.locale(),
+                        if apply {
+                            "market_theme_installed_applied"
+                        } else {
+                            "codexthemes_installed"
+                        },
+                    )
+                    .into();
                 }
                 Err(error) => {
+                    let message = Self::error_message(app.locale(), &error);
+                    app.status = message.clone();
+                    app.codexthemes_error = Some(message);
+                }
+            },
+            cx,
+        );
+    }
+
+    fn begin_preview_codexthemes(
+        &mut self,
+        market_theme: theme::MarketTheme,
+        cx: &mut Context<Self>,
+    ) {
+        if self.busy {
+            self.status = t(self.locale(), "busy").into();
+            cx.notify();
+            return;
+        }
+        let locale = self.locale();
+        self.codexthemes_error = None;
+        self.market_preview_theme = Some(market_theme.clone());
+        self.market_preview_image = None;
+        self.run_operation_async(
+            t(locale, "load_market_preview"),
+            move || theme::download_market_preview(&market_theme),
+            |app, result| match result {
+                Ok(path) => {
+                    app.market_preview_image = Some(path);
+                    app.status = t(app.locale(), "market_preview_loaded").into();
+                }
+                Err(error) => {
+                    app.market_preview_theme = None;
+                    app.market_preview_image = None;
                     let message = Self::error_message(app.locale(), &error);
                     app.status = message.clone();
                     app.codexthemes_error = Some(message);
@@ -694,6 +788,10 @@ impl CodeFaceApp {
 
     fn begin_search_codexthemes(&mut self, cx: &mut Context<Self>) {
         let query = self.codexthemes_input.read(cx).value().to_string();
+        self.begin_search_codexthemes_query(query, cx);
+    }
+
+    fn begin_search_codexthemes_query(&mut self, query: String, cx: &mut Context<Self>) {
         let locale = self.locale();
         self.codexthemes_error = None;
         self.run_operation_async(
@@ -702,6 +800,8 @@ impl CodeFaceApp {
             |app, result| match result {
                 Ok(results) => {
                     app.market_results = results;
+                    app.market_preview_theme = None;
+                    app.market_preview_image = None;
                     app.status = t(app.locale(), "market_results_loaded").into();
                 }
                 Err(error) => {
@@ -712,6 +812,33 @@ impl CodeFaceApp {
             },
             cx,
         );
+    }
+
+    fn set_library_view(&mut self, view: LibraryView, cx: &mut Context<Self>) {
+        self.library_view = view;
+        self.market_preview_theme = None;
+        self.market_preview_image = None;
+        self.codexthemes_error = None;
+        cx.notify();
+    }
+
+    fn begin_library_search(&mut self, cx: &mut Context<Self>) {
+        let query = self.library_search_input.read(cx).value().to_string();
+        self.library_query = query.clone();
+        if self.library_view == LibraryView::Market {
+            self.begin_search_codexthemes_query(query, cx);
+        } else {
+            self.status = t(self.locale(), "local_results_filtered").into();
+            cx.notify();
+        }
+    }
+
+    fn refresh_library(&mut self, cx: &mut Context<Self>) {
+        if self.library_view == LibraryView::Market {
+            self.begin_library_search(cx);
+        } else {
+            self.refresh_themes(cx);
+        }
     }
 
     fn begin_check_theme_update(&mut self, cx: &mut Context<Self>) {
@@ -1523,7 +1650,8 @@ impl Render for CodeFaceApp {
         let palette = self.appearance.palette();
         let codex_menu_open = self.codex_menu_open;
         let add_theme_menu_open = self.add_theme_menu_open;
-        let show_apply_bar = !self.settings_open && !self.editing_source;
+        let show_apply_bar =
+            !self.settings_open && !self.editing_source && self.library_view == LibraryView::Local;
         let selection_is_applied = self.selected == self.applied
             || (self.selected.as_deref() == Some(SYSTEM_THEME_ID) && self.applied.is_none());
         let selected = self.selected.clone();
@@ -1553,10 +1681,26 @@ impl Render for CodeFaceApp {
                 .map(|theme| theme.name.clone())
                 .unwrap_or_else(|| id.clone())
         });
+        let market_preview_theme = self.market_preview_theme.clone();
+        let market_preview_image = self.market_preview_image.clone();
+        let market_main_preview_theme = market_preview_theme.clone();
+        let market_main_preview_image = market_preview_image.clone();
+        let market_preview_loading =
+            market_preview_theme.is_some() && market_preview_image.is_none();
+        let local_query = self.library_query.clone();
+        let library_count = if self.library_view == LibraryView::Local {
+            self.themes
+                .iter()
+                .filter(|theme| theme_matches_query(theme, &local_query))
+                .count()
+        } else {
+            self.market_results.len()
+        };
         let cards: Vec<AnyElement> = self
             .themes
             .clone()
             .into_iter()
+            .filter(|theme| theme_matches_query(theme, &local_query))
             .map(|theme| {
                 let id = theme.id.clone();
                 let is_system = theme.is_system;
@@ -1738,6 +1882,63 @@ impl Render for CodeFaceApp {
                         app.editing_source = false;
                         app.codex_menu_open = false;
                         cx.notify();
+                    }))
+                    .into_any_element()
+            })
+            .collect();
+        let market_cards: Vec<AnyElement> = self
+            .market_results
+            .clone()
+            .into_iter()
+            .map(|market_theme| {
+                let active = self
+                    .market_preview_theme
+                    .as_ref()
+                    .is_some_and(|selected| selected.id == market_theme.id);
+                let preview_theme = market_theme.clone();
+                div()
+                    .id(SharedString::from(format!(
+                        "market-theme-{}",
+                        market_theme.id
+                    )))
+                    .p_3()
+                    .rounded_xl()
+                    .cursor_pointer()
+                    .border_1()
+                    .border_color(if active {
+                        rgb(palette.accent)
+                    } else {
+                        rgb(palette.border)
+                    })
+                    .bg(if active {
+                        rgb(palette.accent_soft)
+                    } else {
+                        rgb(palette.surface)
+                    })
+                    .hover(|item| item.bg(rgb(palette.surface_hover)))
+                    .flex()
+                    .flex_col()
+                    .gap_2()
+                    .child(
+                        div()
+                            .font_weight(gpui::FontWeight::SEMIBOLD)
+                            .child(market_theme.name),
+                    )
+                    .child(
+                        div()
+                            .text_xs()
+                            .text_color(rgb(palette.muted))
+                            .line_clamp(3)
+                            .child(market_theme.description),
+                    )
+                    .child(
+                        div()
+                            .text_xs()
+                            .text_color(rgb(palette.muted))
+                            .child(format!("{} · {}", market_theme.author, market_theme.mode)),
+                    )
+                    .on_click(cx.listener(move |app, _, _, cx| {
+                        app.begin_preview_codexthemes(preview_theme.clone(), cx);
                     }))
                     .into_any_element()
             })
@@ -1958,6 +2159,118 @@ impl Render for CodeFaceApp {
                         .child(self.status.clone()),
                 )
                 .into_any_element()
+        } else if self.library_view == LibraryView::Market {
+            if let Some(market_theme) = market_main_preview_theme {
+                let install_id = market_theme.id.clone();
+                let apply_id = market_theme.id.clone();
+                let installable = market_theme.installable;
+                div()
+                    .flex_1()
+                    .p_5()
+                    .flex()
+                    .flex_col()
+                    .gap_4()
+                    .child(
+                        div()
+                            .flex()
+                            .justify_between()
+                            .items_start()
+                            .gap_4()
+                            .child(
+                                div()
+                                    .min_w_0()
+                                    .flex()
+                                    .flex_col()
+                                    .gap_1()
+                                    .child(
+                                        div()
+                                            .text_2xl()
+                                            .font_weight(gpui::FontWeight::SEMIBOLD)
+                                            .child(market_theme.name.clone()),
+                                    )
+                                    .child(div().text_sm().text_color(rgb(palette.muted)).child(
+                                        format!("{} · {}", market_theme.author, market_theme.mode),
+                                    )),
+                            )
+                            .child(
+                                div()
+                                    .flex()
+                                    .gap_2()
+                                    .child(button_with_id(
+                                        cx,
+                                        format!("market-main-install-{install_id}").into(),
+                                        t(locale, "install"),
+                                        installable,
+                                        move |app, _, cx| {
+                                            if installable {
+                                                app.begin_install_codexthemes_value(
+                                                    install_id.clone(),
+                                                    false,
+                                                    cx,
+                                                );
+                                            }
+                                        },
+                                    ))
+                                    .child(button_with_id(
+                                        cx,
+                                        format!("market-main-apply-{apply_id}").into(),
+                                        t(locale, "install_and_apply"),
+                                        installable,
+                                        move |app, _, cx| {
+                                            if installable {
+                                                app.begin_install_codexthemes_value(
+                                                    apply_id.clone(),
+                                                    true,
+                                                    cx,
+                                                );
+                                            }
+                                        },
+                                    )),
+                            ),
+                    )
+                    .child(
+                        div()
+                            .text_sm()
+                            .text_color(rgb(palette.text))
+                            .child(market_theme.description),
+                    )
+                    .child(
+                        div()
+                            .flex_1()
+                            .min_h(px(360.))
+                            .rounded_xl()
+                            .overflow_hidden()
+                            .border_1()
+                            .border_color(rgb(palette.border))
+                            .bg(rgb(palette.surface))
+                            .when_some(market_main_preview_image, |container, path| {
+                                container
+                                    .child(img(path).size_full().object_fit(ObjectFit::Contain))
+                            })
+                            .when(market_preview_loading, |container| {
+                                container
+                                    .flex()
+                                    .items_center()
+                                    .justify_center()
+                                    .text_color(rgb(palette.muted))
+                                    .child(t(locale, "loading_preview"))
+                            }),
+                    )
+                    .into_any_element()
+            } else {
+                div()
+                    .flex_1()
+                    .p_6()
+                    .flex()
+                    .flex_col()
+                    .items_center()
+                    .justify_center()
+                    .gap_3()
+                    .text_color(rgb(palette.muted))
+                    .child(div().text_2xl().child(t(locale, "theme_market")))
+                    .child(div().text_sm().child(t(locale, "select_market_theme")))
+                    .into_any_element()
+            }
         } else {
             let selected_swatches: AnyElement = selected_theme
                 .as_ref()
@@ -2044,7 +2357,9 @@ impl Render for CodeFaceApp {
                                             false,
                                             |app, _, cx| {
                                                 if let Ok(id) = app.selected_id() {
-                                                    app.begin_install_codexthemes_value(id, cx);
+                                                    app.begin_install_codexthemes_value(
+                                                        id, false, cx,
+                                                    );
                                                 }
                                             },
                                         ))
@@ -2171,13 +2486,58 @@ impl Render for CodeFaceApp {
                             .gap_3()
                             .child(
                                 div()
+                                    .p_1()
+                                    .rounded_lg()
+                                    .bg(rgb(palette.surface))
+                                    .flex()
+                                    .gap_1()
+                                    .child(button_with_id(
+                                        cx,
+                                        "library-local-tab".into(),
+                                        t(locale, "local_themes"),
+                                        self.library_view == LibraryView::Local,
+                                        |app, _, cx| app.set_library_view(LibraryView::Local, cx),
+                                    ))
+                                    .child(button_with_id(
+                                        cx,
+                                        "library-market-tab".into(),
+                                        t(locale, "theme_market"),
+                                        self.library_view == LibraryView::Market,
+                                        |app, _, cx| app.set_library_view(LibraryView::Market, cx),
+                                    )),
+                            )
+                            .child(
+                                div()
+                                    .h(px(38.))
+                                    .flex()
+                                    .gap_2()
+                                    .child(
+                                        div()
+                                            .min_w_0()
+                                            .flex_1()
+                                            .rounded_lg()
+                                            .overflow_hidden()
+                                            .child(
+                                                Input::new(&self.library_search_input).h_full(),
+                                            ),
+                                    )
+                                    .child(button_with_id(
+                                        cx,
+                                        "library-search".into(),
+                                        t(locale, "search"),
+                                        false,
+                                        |app, _, cx| app.begin_library_search(cx),
+                                    )),
+                            )
+                            .child(
+                                div()
                                     .flex()
                                     .justify_between()
                                     .items_end()
                                     .child(div().text_xs().text_color(rgb(palette.muted)).child(
                                         format!(
                                             "{} {}",
-                                            self.themes.len(),
+                                            library_count,
                                             t(locale, "themes_count")
                                         ),
                                     ))
@@ -2192,7 +2552,7 @@ impl Render for CodeFaceApp {
                                                 "refresh-themes",
                                                 "icons/refresh-cw.svg",
                                                 t(locale, "refresh"),
-                                                |app, _, cx| app.refresh_themes(cx),
+                                                |app, _, cx| app.refresh_library(cx),
                                             ))
                                             .child(icon_button(
                                                 cx,
@@ -2216,7 +2576,11 @@ impl Render for CodeFaceApp {
                                     .flex()
                                     .flex_col()
                                     .gap_2()
-                                    .children(cards),
+                                    .children(if self.library_view == LibraryView::Local {
+                                        cards
+                                    } else {
+                                        market_cards
+                                    }),
                             ),
                     )
                     .child(detail_panel),
@@ -2461,7 +2825,7 @@ impl Render for CodeFaceApp {
                             div()
                                 .id("codexthemes-install-dialog")
                                 .occlude()
-                                .w(px(520.))
+                                .w(px(760.))
                                 .p_6()
                                 .rounded_xl()
                                 .border_1()
@@ -2520,6 +2884,7 @@ impl Render for CodeFaceApp {
                                             |market_theme| {
                                                 let id = market_theme.id.clone();
                                                 let installable = market_theme.installable;
+                                                let preview_market_theme = market_theme.clone();
                                                 div()
                                                     .p_3()
                                                     .rounded_lg()
@@ -2555,27 +2920,173 @@ impl Render for CodeFaceApp {
                                                                     )),
                                                             ),
                                                     )
-                                                    .child(button_with_id(
-                                                        cx,
-                                                        format!("install-market-{id}").into(),
-                                                        if installable {
-                                                            t(locale, "install")
-                                                        } else {
-                                                            t(locale, "not_installable")
-                                                        },
-                                                        installable,
-                                                        move |app, _, cx| {
-                                                            if installable {
-                                                                app.begin_install_codexthemes_value(
-                                                                    id.clone(),
-                                                                    cx,
-                                                                );
-                                                            }
-                                                        },
-                                                    ))
+                                                    .child(
+                                                        div()
+                                                            .flex()
+                                                            .items_center()
+                                                            .gap_2()
+                                                            .child(button_with_id(
+                                                                cx,
+                                                                format!("preview-market-{id}")
+                                                                    .into(),
+                                                                t(locale, "preview"),
+                                                                false,
+                                                                {
+                                                                    let market_theme =
+                                                                        preview_market_theme.clone();
+                                                                    move |app, _, cx| {
+                                                                        app.begin_preview_codexthemes(
+                                                                            market_theme.clone(),
+                                                                            cx,
+                                                                        );
+                                                                    }
+                                                                },
+                                                            ))
+                                                            .child(button_with_id(
+                                                                cx,
+                                                                format!("install-market-{id}")
+                                                                    .into(),
+                                                                if installable {
+                                                                    t(locale, "install")
+                                                                } else {
+                                                                    t(locale, "not_installable")
+                                                                },
+                                                                installable,
+                                                                move |app, _, cx| {
+                                                                    if installable {
+                                                                        app.begin_install_codexthemes_value(
+                                                                            id.clone(),
+                                                                            false,
+                                                                            cx,
+                                                                        );
+                                                                    }
+                                                                },
+                                                            )),
+                                                    )
                                             },
                                         ))
                                 }))
+                                .when_some(market_preview_theme, |dialog, market_theme| {
+                                    let preview_id = market_theme.id.clone();
+                                    let installable = market_theme.installable;
+                                    dialog.child(
+                                        div()
+                                            .id("codexthemes-market-preview")
+                                            .p_3()
+                                            .rounded_lg()
+                                            .border_1()
+                                            .border_color(rgb(palette.border))
+                                            .bg(rgb(palette.background))
+                                            .flex()
+                                            .gap_4()
+                                            .child(
+                                                div()
+                                                    .w(px(300.))
+                                                    .h(px(180.))
+                                                    .rounded_lg()
+                                                    .overflow_hidden()
+                                                    .bg(rgb(palette.surface_hover))
+                                                    .when_some(
+                                                        market_preview_image,
+                                                        |container, image_path| {
+                                                            container.child(
+                                                                img(image_path)
+                                                                    .size_full()
+                                                                    .object_fit(ObjectFit::Cover),
+                                                            )
+                                                        },
+                                                    )
+                                                    .when(
+                                                        market_preview_loading,
+                                                        |container| {
+                                                            container
+                                                                .flex()
+                                                                .items_center()
+                                                                .justify_center()
+                                                                .text_sm()
+                                                                .text_color(rgb(palette.muted))
+                                                                .child(t(locale, "loading_preview"))
+                                                        },
+                                                    ),
+                                            )
+                                            .child(
+                                                div()
+                                                    .min_w_0()
+                                                    .flex_1()
+                                                    .flex()
+                                                    .flex_col()
+                                                    .gap_2()
+                                                    .child(
+                                                        div()
+                                                            .text_lg()
+                                                            .font_weight(gpui::FontWeight::SEMIBOLD)
+                                                            .child(market_theme.name),
+                                                    )
+                                                    .child(
+                                                        div()
+                                                            .text_xs()
+                                                            .text_color(rgb(palette.muted))
+                                                            .child(format!(
+                                                                "{} · {}",
+                                                                market_theme.author,
+                                                                market_theme.mode
+                                                            )),
+                                                    )
+                                                    .child(
+                                                        div()
+                                                            .text_sm()
+                                                            .text_color(rgb(palette.text))
+                                                            .line_clamp(4)
+                                                            .child(market_theme.description),
+                                                    )
+                                                    .child(
+                                                        div()
+                                                            .mt_auto()
+                                                            .flex()
+                                                            .gap_2()
+                                                            .child(button_with_id(
+                                                                cx,
+                                                                format!(
+                                                                    "preview-install-{preview_id}"
+                                                                )
+                                                                .into(),
+                                                                t(locale, "install"),
+                                                                installable,
+                                                                {
+                                                                    let id = preview_id.clone();
+                                                                    move |app, _, cx| {
+                                                                        if installable {
+                                                                            app.begin_install_codexthemes_value(
+                                                                                id.clone(),
+                                                                                false,
+                                                                                cx,
+                                                                            );
+                                                                        }
+                                                                    }
+                                                                },
+                                                            ))
+                                                            .child(button_with_id(
+                                                                cx,
+                                                                format!(
+                                                                    "preview-install-apply-{preview_id}"
+                                                                )
+                                                                .into(),
+                                                                t(locale, "install_and_apply"),
+                                                                installable,
+                                                                move |app, _, cx| {
+                                                                    if installable {
+                                                                        app.begin_install_codexthemes_value(
+                                                                            preview_id.clone(),
+                                                                            true,
+                                                                            cx,
+                                                                        );
+                                                                    }
+                                                                },
+                                                            )),
+                                                    ),
+                                            ),
+                                    )
+                                })
                                 .child(
                                     div()
                                         .text_xs()
@@ -2595,6 +3106,8 @@ impl Render for CodeFaceApp {
                                             |app, _, cx| {
                                                 app.codexthemes_open = false;
                                                 app.codexthemes_error = None;
+                                                app.market_preview_theme = None;
+                                                app.market_preview_image = None;
                                                 cx.notify();
                                             },
                                         ))
@@ -2638,12 +3151,29 @@ fn main() {
                     query,
                 )?)?)
             })()),
+            "--preview-codexthemes" => Some((|| {
+                let source = arguments
+                    .get(2)
+                    .ok_or_else(|| anyhow!("Missing CodexThemes theme ID or URL"))?;
+                let (market_theme, path) = theme::preview_from_codexthemes(source)?;
+                Ok(serde_json::to_string_pretty(&serde_json::json!({
+                    "theme": market_theme,
+                    "previewPath": path
+                }))?)
+            })()),
             "--install-codexthemes" => Some((|| {
                 let source = arguments
                     .get(2)
                     .ok_or_else(|| anyhow!("Missing CodexThemes theme ID or URL"))?;
                 install_codexthemes_checked(source)
                     .map(|id| format!("Installed CodexThemes theme: {id}"))
+            })()),
+            "--install-apply-codexthemes" => Some((|| {
+                let source = arguments
+                    .get(2)
+                    .ok_or_else(|| anyhow!("Missing CodexThemes theme ID or URL"))?;
+                install_and_apply_codexthemes_checked(source)
+                    .map(|id| format!("Installed, applied, and verified CodexThemes theme: {id}"))
             })()),
             "--check-theme-update" => Some((|| {
                 let id = arguments
@@ -2805,5 +3335,37 @@ mod tests {
         assert_eq!(CodeFaceApp::preview_position(None), (0.5, 0.5));
         assert_eq!(CodeFaceApp::preview_number(Some(&width), 100.), 272.);
         assert_eq!(CodeFaceApp::preview_number(Some(&invalid), 100.), 100.);
+    }
+
+    #[test]
+    fn local_theme_search_matches_id_name_and_description() {
+        let theme = ThemeSummary {
+            id: "ligurian-afterglow".into(),
+            name: "Ligurian Afterglow".into(),
+            description: "Dusky coastal workspace".into(),
+            image: PathBuf::new(),
+            is_system: false,
+            is_market: true,
+            background: 0,
+            panel: 0,
+            panel_alt: 0,
+            accent: 0,
+            accent_alt: 0,
+            text: 0,
+            muted: 0,
+            line: 0,
+            background_position: (0.5, 0.5),
+            sidebar_width: 272.,
+            content_max_width: 980.,
+            composer_max_width: 840.,
+            brand: false,
+            avatar: None,
+            has_background_image: true,
+        };
+        assert!(theme_matches_query(&theme, "ligurian"));
+        assert!(theme_matches_query(&theme, "AFTERGLOW"));
+        assert!(theme_matches_query(&theme, "coastal"));
+        assert!(theme_matches_query(&theme, ""));
+        assert!(!theme_matches_query(&theme, "cyberpunk"));
     }
 }

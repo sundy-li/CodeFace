@@ -2,7 +2,7 @@ use crate::paths;
 use anyhow::{Context, Result, bail};
 use base64::{Engine as _, engine::general_purpose::STANDARD};
 use chrono::Local;
-use image::{DynamicImage, Rgba, RgbaImage};
+use image::{DynamicImage, GenericImageView, Rgba, RgbaImage};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{
@@ -14,6 +14,7 @@ use std::{
 
 const CODEXTHEMES_BASE_URL: &str = "https://codexthemes.ai";
 const CODEXTHEMES_MAX_PACKAGE_SIZE: usize = 30 * 1024 * 1024;
+const CODEXTHEMES_MAX_PREVIEW_SIZE: usize = 8 * 1024 * 1024;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct MarketTheme {
@@ -576,6 +577,91 @@ pub fn search_codexthemes(query: &str) -> Result<Vec<MarketTheme>> {
     Ok(response.themes)
 }
 
+fn download_market_preview_into(
+    market_theme: &MarketTheme,
+    previews_root: &Path,
+) -> Result<PathBuf> {
+    codexthemes_id(&market_theme.id)?;
+    let source =
+        reqwest::Url::parse(&market_theme.image).context("CodexThemes preview URL is invalid")?;
+    validate_codexthemes_https_url(&source, "preview")?;
+    let response = reqwest::blocking::Client::builder()
+        .timeout(std::time::Duration::from_secs(20))
+        .build()?
+        .get(source)
+        .header(reqwest::header::ACCEPT, "image/png,image/jpeg,image/webp")
+        .send()
+        .context("failed to download CodexThemes preview")?
+        .error_for_status()
+        .context("CodexThemes preview download failed")?;
+    let final_url = response.url();
+    validate_codexthemes_https_url(final_url, "preview redirect")?;
+    if response
+        .content_length()
+        .is_some_and(|length| length > CODEXTHEMES_MAX_PREVIEW_SIZE as u64)
+    {
+        bail!("CodexThemes preview cannot exceed 8 MiB");
+    }
+    let mut bytes = Vec::new();
+    response
+        .take(CODEXTHEMES_MAX_PREVIEW_SIZE as u64 + 1)
+        .read_to_end(&mut bytes)?;
+    if bytes.len() > CODEXTHEMES_MAX_PREVIEW_SIZE {
+        bail!("CodexThemes preview cannot exceed 8 MiB");
+    }
+    let png = normalize_market_preview(&bytes)?;
+    fs::create_dir_all(previews_root)?;
+    let path = previews_root.join(format!("{}.png", market_theme.id));
+    atomic_write(&path, &png)?;
+    Ok(path)
+}
+
+fn validate_codexthemes_https_url(url: &reqwest::Url, label: &str) -> Result<()> {
+    let host = url.host_str().unwrap_or_default();
+    if url.scheme() != "https" || !(host == "codexthemes.ai" || host.ends_with(".codexthemes.ai")) {
+        bail!("CodexThemes {label} must use a trusted HTTPS domain");
+    }
+    Ok(())
+}
+
+fn normalize_market_preview(bytes: &[u8]) -> Result<Vec<u8>> {
+    let mut reader = image::ImageReader::new(std::io::Cursor::new(bytes))
+        .with_guessed_format()
+        .context("failed to detect CodexThemes preview format")?;
+    let mut limits = image::Limits::default();
+    limits.max_image_width = Some(8192);
+    limits.max_image_height = Some(8192);
+    limits.max_alloc = Some(128 * 1024 * 1024);
+    reader.limits(limits);
+    let image = reader
+        .decode()
+        .context("failed to decode CodexThemes preview")?;
+    let (width, height) = image.dimensions();
+    if width == 0 || height == 0 || width > 8192 || height > 8192 {
+        bail!("CodexThemes preview dimensions are unsupported");
+    }
+    let mut png = Vec::new();
+    image.write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png)?;
+    if png.len() > CODEXTHEMES_MAX_PREVIEW_SIZE {
+        bail!("normalized CodexThemes preview cannot exceed 8 MiB");
+    }
+    Ok(png)
+}
+
+pub fn download_market_preview(market_theme: &MarketTheme) -> Result<PathBuf> {
+    download_market_preview_into(market_theme, &paths::market_previews_root()?)
+}
+
+pub fn preview_from_codexthemes(input: &str) -> Result<(MarketTheme, PathBuf)> {
+    let id = codexthemes_id(input)?;
+    let market_theme = search_codexthemes(&id)?
+        .into_iter()
+        .find(|theme| theme.id == id)
+        .with_context(|| format!("CodexThemes theme was not found: {id}"))?;
+    let path = download_market_preview(&market_theme)?;
+    Ok((market_theme, path))
+}
+
 fn download_codexthemes_package(id: &str) -> Result<Vec<u8>> {
     let endpoint = format!("{CODEXTHEMES_BASE_URL}/api/themes/{id}/download");
     let response = reqwest::blocking::Client::builder()
@@ -924,6 +1010,50 @@ mod tests {
         assert_eq!(
             response.themes[0].download_url,
             "https://codexthemes.ai/api/themes/coast/download"
+        );
+    }
+
+    #[test]
+    fn market_preview_urls_require_trusted_https_hosts() {
+        for trusted in [
+            "https://codexthemes.ai/preview.png",
+            "https://cdn.codexthemes.ai/uploads/preview.webp",
+        ] {
+            validate_codexthemes_https_url(&reqwest::Url::parse(trusted).expect("URL"), "preview")
+                .expect("trusted preview URL");
+        }
+        for rejected in [
+            "http://cdn.codexthemes.ai/preview.png",
+            "https://codexthemes.ai.example.com/preview.png",
+            "https://example.com/preview.png",
+        ] {
+            assert!(
+                validate_codexthemes_https_url(
+                    &reqwest::Url::parse(rejected).expect("URL"),
+                    "preview"
+                )
+                .is_err()
+            );
+        }
+    }
+
+    #[test]
+    fn market_preview_is_normalized_to_png() {
+        let source = DynamicImage::ImageRgba8(RgbaImage::from_pixel(3, 2, Rgba([12, 34, 56, 255])));
+        let mut jpeg = Vec::new();
+        source
+            .write_to(
+                &mut std::io::Cursor::new(&mut jpeg),
+                image::ImageFormat::Jpeg,
+            )
+            .expect("encode preview fixture");
+        let png = normalize_market_preview(&jpeg).expect("normalize preview");
+        assert_eq!(&png[..8], b"\x89PNG\r\n\x1a\n");
+        assert_eq!(
+            image::load_from_memory(&png)
+                .expect("decode normalized preview")
+                .dimensions(),
+            (3, 2)
         );
     }
 

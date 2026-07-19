@@ -34,6 +34,12 @@ pub fn exports_root() -> Result<PathBuf> {
     Ok(path)
 }
 
+pub fn market_previews_root() -> Result<PathBuf> {
+    let path = state_root()?.join("market-previews");
+    fs::create_dir_all(&path)?;
+    Ok(path)
+}
+
 pub fn active_theme_root() -> Result<PathBuf> {
     let path = state_root()?.join("theme");
     fs::create_dir_all(&path)?;

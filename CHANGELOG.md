@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.5.0 — 2026-07-19
+
+- Added first-class **Local** and **Theme market** library views, both with search.
+- Added in-app CodexThemes preview images with bounded, trusted-HTTPS downloads and local PNG normalization.
+- Added a complete market flow for search, large preview, install, and one-step install-and-apply without leaving the theme library.
+- Market install-and-apply now uses the existing runtime health gate and automatic rollback.
+- Added `--preview-codexthemes` for preview download diagnostics.
+
 ## 1.4.0 — 2026-07-19
 
 - Added post-apply runtime health reports for theme identity, critical controls, text contrast, and suggestion stability.

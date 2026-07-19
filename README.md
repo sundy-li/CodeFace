@@ -30,7 +30,7 @@ Release builds are currently not notarized or code-signed with a commercial cert
 - Import theme packs and manage them alongside built-in and locally created themes
 - Install compatible `.codex-theme` packages directly from [CodexThemes](https://codexthemes.ai/) by theme ID or detail-page URL
 - Preserve market theme styling with incremental DOM compatibility, stable suggestions, and artwork-aware content positioning
-- Search the market in CodeFace, check updates, back up and roll back themes, and export portable packages
+- Search and preview the market in CodeFace, install or install-and-apply themes, check updates, back up and roll back themes, and export portable packages
 - Verify applied themes against the live Codex DOM and automatically roll back unhealthy results
 - Edit `theme.json` and `codeface.css` directly, with CSS syntax highlighting
 
@@ -63,7 +63,7 @@ background.png
 
 The template is available in [`resources/theme-pack-template`](resources/theme-pack-template). Double-click a theme in the theme list to edit its source directly.
 
-To install from the CodexThemes market, click **Install from CodexThemes**, paste a theme ID such as `portal-panic` or its `https://codexthemes.ai/themes/<id>` URL, and click **Install**. CodeFace downloads the official package through the anonymous market API, validates and converts it into the local CodeFace format, then selects it for preview. Listings marked as skins or non-installable archives are not supported by this flow.
+The theme library has two searchable views: **Local** filters installed themes by name, ID, or description; **Theme market** searches CodexThemes by style or subject. Select a market result to load its large preview in the main workspace without installing it. Choose **Install** to add it to the library, or **Install & apply** to install it, apply it to Codex, run the runtime health gate, and roll back automatically if verification fails. The **+** menu still accepts a theme ID such as `portal-panic` or its `https://codexthemes.ai/themes/<id>` URL for direct installation. Listings marked as skins or non-installable archives are not supported by this flow.
 
 ## Codex Skill
 
@@ -154,7 +154,9 @@ codeface --apply-active
 codeface --apply-theme cyberpunk
 codeface --import-theme /path/to/theme-directory
 codeface --install-codexthemes portal-panic
+codeface --install-apply-codexthemes portal-panic
 codeface --search-codexthemes coast
+codeface --preview-codexthemes ligurian-afterglow
 codeface --check-theme-update portal-panic
 codeface --health-check portal-panic 9341
 codeface --list-theme-backups portal-panic
