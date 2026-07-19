@@ -1,871 +1,331 @@
-/* Fan Zhendong championship theme. Appended after the safe base skin. */
+/* Champion Arena — restrained arena glass layered over the safe CodeFace base skin. */
 
-html.codeface {
+html.codeface,
+html.codeface[data-codeface-shell="light"] {
   color-scheme: dark !important;
-  --fzd-canvas: #0b1018;
-  --fzd-canvas-deep: #070b11;
-  --fzd-panel: #121a25;
-  --fzd-panel-raised: #182334;
-  --fzd-blue: #2f8faa;
-  --fzd-blue-bright: #77c7cf;
-  --fzd-navy: #3155a0;
-  --fzd-red: #d13b3f;
-  --fzd-text: #f4f7fa;
+  --fzd-canvas: #0a0f16;
+  --fzd-panel: #111923;
+  --fzd-raised: #182433;
+  --fzd-input: #0d1722;
+  --fzd-text: #f2f5f8;
   --fzd-muted: #a7b2c2;
-  --fzd-line: #344256;
+  --fzd-disabled: #69778b;
+  --fzd-cyan: #68b9c4;
+  --fzd-cyan-soft: rgba(104, 185, 196, .12);
+  --fzd-red: #c84b4f;
+  --fzd-line: #304052;
+  --fzd-focus: #78c8d0;
+  --fzd-shadow: rgba(2, 7, 14, .42);
   --fzd-ease: cubic-bezier(.2, .8, .2, 1);
-  --fzd-shadow: rgba(2, 7, 14, .46);
+  --cf-bg: var(--fzd-canvas) !important;
+  --cf-panel: var(--fzd-panel) !important;
+  --cf-panel-2: var(--fzd-raised) !important;
+  --cf-text: var(--fzd-text) !important;
+  --cf-muted: var(--fzd-muted) !important;
+  --cf-line: var(--fzd-line) !important;
+  --color-token-bg-primary: var(--fzd-canvas) !important;
+  --color-token-bg-secondary: var(--fzd-panel) !important;
+  --color-token-bg-tertiary: var(--fzd-raised) !important;
+  --color-token-main-surface-primary: var(--fzd-canvas) !important;
+  --color-token-side-bar-background: var(--fzd-panel) !important;
+  --color-token-foreground: var(--fzd-text) !important;
+  --color-token-text-primary: var(--fzd-text) !important;
+  --color-token-text-secondary: #b3bdc9 !important;
+  --color-token-text-tertiary: #8794a6 !important;
+  --color-token-description-foreground: var(--fzd-muted) !important;
+  --color-token-icon-foreground: #bdc7d1 !important;
+  --color-token-input-background: var(--fzd-input) !important;
+  --color-token-input-foreground: var(--fzd-text) !important;
+  --color-token-input-placeholder-foreground: #758295 !important;
+  --color-token-input-border: var(--fzd-line) !important;
+  --color-token-border: var(--fzd-line) !important;
+  --color-token-border-default: var(--fzd-line) !important;
+  --color-token-border-heavy: #42576b !important;
+  --color-token-border-light: #243547 !important;
+  --color-token-list-hover-background: rgba(104, 185, 196, .08) !important;
+  --color-token-list-active-selection-background: rgba(104, 185, 196, .14) !important;
+  --color-token-list-active-selection-foreground: var(--fzd-text) !important;
+  --color-token-toolbar-hover-background: rgba(104, 185, 196, .08) !important;
+  --color-token-button-background: var(--fzd-cyan) !important;
+  --color-token-button-foreground: #080f16 !important;
+  --color-token-button-border: #8acbd2 !important;
+  --color-token-link: #78c8d0 !important;
+  --color-token-text-link-foreground: #78c8d0 !important;
+  --color-token-text-link-active-foreground: #a5dde2 !important;
+  --color-token-primary: var(--fzd-cyan) !important;
+  --color-token-focus-border: var(--fzd-focus) !important;
+  --color-token-dropdown-background: var(--fzd-raised) !important;
+  --color-token-dropdown-foreground: var(--fzd-text) !important;
+  --color-token-menu-background: #182433 !important;
+  --color-token-menu-border: var(--fzd-line) !important;
+  --color-token-checkbox-background: var(--fzd-input) !important;
+  --color-token-checkbox-border: #607487 !important;
+  --color-token-checkbox-foreground: #080f16 !important;
+  --color-token-badge-background: rgba(104, 185, 196, .11) !important;
+  --color-token-badge-foreground: #dbeaed !important;
+  --color-token-scrollbar-slider-background: rgba(157, 176, 190, .2) !important;
+  --color-token-scrollbar-slider-hover-background: rgba(157, 176, 190, .32) !important;
+  --color-token-scrollbar-slider-active-background: rgba(104, 185, 196, .44) !important;
+  --color-token-conversation-header: #939eae !important;
+  --color-token-conversation-body: #ced6df !important;
+  --color-token-conversation-summary-leading: #b4bfca !important;
+  --color-token-conversation-summary-trailing: #8793a4 !important;
+  --color-token-non-assistant-body-descendant: #c7d0da !important;
+  --color-token-text-preformat-foreground: #e7ecf2 !important;
+  --color-token-text-preformat-background: #151f2c !important;
+  --color-token-text-code-block-background: #080d14 !important;
 }
 
-html.codeface body {
-  background:
-    radial-gradient(circle at 74% 12%, rgba(49, 85, 160, .13), transparent 32%),
-    linear-gradient(145deg, var(--fzd-panel) 0%, var(--fzd-canvas) 48%, var(--fzd-canvas-deep) 100%) !important;
+html.codeface body,
+html.codeface[data-codeface-shell="light"] body {
   color: var(--fzd-text) !important;
+  background:
+    radial-gradient(circle at 84% 3%, rgba(104, 185, 196, .06), transparent 30%),
+    linear-gradient(145deg, #111923, #0a0f16 56%, #070b11) !important;
 }
 
 html.codeface body::before {
-  opacity: .12 !important;
-  pointer-events: none !important;
+  opacity: .07 !important;
   background-image:
-    linear-gradient(rgba(119, 199, 207, .06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(119, 199, 207, .06) 1px, transparent 1px) !important;
-  background-size: 48px 48px !important;
-  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, .62), transparent 72%) !important;
+    linear-gradient(rgba(104, 185, 196, .035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(104, 185, 196, .035) 1px, transparent 1px) !important;
+  background-size: 64px 64px !important;
+  pointer-events: none !important;
 }
 
-/* Left navigation: matte arena wall with restrained blue selection. */
+/* The home route owns one viewport-wide artwork layer. Sidebar and canvas are
+   materials over the same image, so the championship stage remains continuous. */
+html.codeface.codeface-home-route body,
+html.codeface.codeface-home-route[data-codeface-shell="light"] body {
+  background:
+    linear-gradient(180deg, rgba(5, 8, 12, .12), rgba(5, 8, 12, .34)),
+    var(--codeface-art) var(--codeface-background-position, 62% 48%) / cover no-repeat fixed !important;
+}
+
+html.codeface.codeface-home-route body::before { opacity: 0 !important; }
+
 html.codeface aside.app-shell-left-panel,
 html.codeface[data-codeface-shell="light"] aside.app-shell-left-panel {
-  color-scheme: dark !important;
-  border-color: rgba(119, 199, 207, .16) !important;
+  border-color: rgba(104, 185, 196, .13) !important;
   border-left: 0 !important;
-  background:
-    linear-gradient(180deg, rgba(24, 35, 52, .98), rgba(11, 16, 24, .99)) !important;
+  background: linear-gradient(180deg, rgba(17, 25, 35, .99), rgba(10, 15, 22, .99)) !important;
   color: var(--fzd-text) !important;
-  box-shadow: 12px 0 34px var(--fzd-shadow), inset -1px 0 rgba(244, 247, 250, .05) !important;
+  box-shadow: 8px 0 28px rgba(2, 7, 14, .3), inset -1px 0 rgba(168, 232, 238, .04) !important;
   backdrop-filter: none !important;
+}
+
+html.codeface.codeface-home-route aside.app-shell-left-panel,
+html.codeface.codeface-home-route[data-codeface-shell="light"] aside.app-shell-left-panel {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background:
+    linear-gradient(90deg, rgba(14, 22, 32, .82), rgba(8, 13, 20, .76) 72%, rgba(8, 13, 20, .58)) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  z-index: 2 !important;
+}
+
+html.codeface.codeface-home-route aside.app-shell-left-panel::after,
+html.codeface.codeface-home-route[data-codeface-shell="light"] aside.app-shell-left-panel::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: 100%;
+  width: 64px;
+  background: linear-gradient(90deg, rgba(8, 13, 20, .58), transparent);
+  pointer-events: none;
 }
 
 html.codeface aside.app-shell-left-panel nav { background: transparent !important; }
 
 html.codeface aside.app-shell-left-panel button,
 html.codeface aside.app-shell-left-panel a {
-  border-color: transparent !important;
   color: var(--fzd-text) !important;
-  transition: background-color 160ms var(--fzd-ease), border-color 160ms var(--fzd-ease), color 160ms var(--fzd-ease), transform 120ms var(--fzd-ease) !important;
+  border-color: transparent !important;
+  transition: background-color 170ms var(--fzd-ease), color 170ms var(--fzd-ease), transform 170ms var(--fzd-ease) !important;
 }
 
 html.codeface aside.app-shell-left-panel svg { color: var(--fzd-muted) !important; }
 
 html.codeface aside.app-shell-left-panel button:hover,
 html.codeface aside.app-shell-left-panel a:hover {
-  background: rgba(119, 199, 207, .09) !important;
-  color: var(--fzd-text) !important;
-  box-shadow: inset 0 0 0 1px rgba(119, 199, 207, .14) !important;
-  transform: none !important;
+  background: rgba(104, 185, 196, .075) !important;
+  color: #f7fcfd !important;
+  transform: translateX(1px) !important;
 }
 
 html.codeface aside.app-shell-left-panel button:active,
-html.codeface aside.app-shell-left-panel a:active { transform: scale(.985) !important; }
+html.codeface aside.app-shell-left-panel a:active { transform: translateX(1px) scale(.985) !important; }
 
 html.codeface aside.app-shell-left-panel [class~="bg-token-list-hover-background"],
 html.codeface aside.app-shell-left-panel [aria-current="page"] {
-  border: 1px solid rgba(119, 199, 207, .26) !important;
-  background: linear-gradient(90deg, rgba(47, 143, 170, .22), rgba(49, 85, 160, .12)) !important;
+  border: 1px solid rgba(104, 185, 196, .2) !important;
+  background: linear-gradient(90deg, rgba(104, 185, 196, .14), rgba(48, 93, 126, .06)) !important;
   color: var(--fzd-text) !important;
-  box-shadow: inset 3px 0 var(--fzd-blue-bright) !important;
+  box-shadow: inset 3px 0 var(--fzd-cyan) !important;
 }
 
-html.codeface :is(button, a, input, textarea, [contenteditable="true"]):focus-visible {
-  outline: 2px solid var(--fzd-blue-bright) !important;
+html.codeface :is(button, a, input, textarea, [role="button"], [contenteditable="true"]):focus-visible {
+  outline: 2px solid var(--fzd-focus) !important;
   outline-offset: 2px !important;
+  box-shadow: none !important;
 }
 
-/* Main routes deliberately use color, never the portrait. */
-html.codeface main.main-surface { border-color: rgba(119, 199, 207, .16) !important; }
+html.codeface main.main-surface { border-color: rgba(104, 185, 196, .12) !important; }
+
+html.codeface main.main-surface.codeface-home-shell,
+html.codeface[data-codeface-shell="light"] main.main-surface.codeface-home-shell {
+  background:
+    linear-gradient(0deg, rgba(5, 8, 12, .48), transparent 54%),
+    radial-gradient(circle at 62% 48%, transparent 0 31%, rgba(5, 8, 12, .1) 74%) !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
 
 html.codeface main.main-surface:not(.codeface-home-shell) {
+  color: var(--fzd-text) !important;
   background:
-    radial-gradient(circle at 88% 6%, rgba(49, 85, 160, .13), transparent 30%),
-    linear-gradient(155deg, #111925 0%, var(--fzd-canvas) 58%, #080d14 100%) !important;
-  box-shadow: inset 0 1px rgba(244, 247, 250, .04), -8px 0 28px var(--fzd-shadow) !important;
+    radial-gradient(circle at 88% 5%, rgba(104, 185, 196, .05), transparent 32%),
+    linear-gradient(150deg, #111923, #0a0f16 60%, #060f1a) !important;
+  box-shadow: -8px 0 28px rgba(2, 7, 14, .25) !important;
 }
 
-html.codeface main.main-surface:not(.codeface-home-shell) > header.app-header-tint {
-  border-bottom: 1px solid rgba(119, 199, 207, .15) !important;
-  background: rgba(12, 18, 27, .9) !important;
-  box-shadow: 0 8px 24px rgba(2, 7, 14, .24) !important;
-  backdrop-filter: blur(16px) saturate(105%) !important;
+html.codeface main.main-surface > header.app-header-tint {
+  border-bottom: 1px solid rgba(104, 185, 196, .12) !important;
+  background: #0d1621 !important;
+  color: var(--fzd-text) !important;
+  box-shadow: 0 6px 20px rgba(2, 7, 14, .18) !important;
+  backdrop-filter: none !important;
 }
 
 html.codeface main.main-surface:not(.codeface-home-shell) article {
-  border-color: rgba(119, 199, 207, .14) !important;
-  background: rgba(18, 26, 37, .88) !important;
+  border: 1px solid rgba(130, 158, 177, .14) !important;
+  border-radius: 14px !important;
+  background: rgba(17, 25, 35, .92) !important;
   color: var(--fzd-text) !important;
-  box-shadow: 0 8px 24px rgba(2, 7, 14, .24), inset 0 1px rgba(244, 247, 250, .035) !important;
-  backdrop-filter: blur(10px) saturate(104%) !important;
+  box-shadow: 0 8px 22px rgba(2, 7, 14, .16), inset 0 1px rgba(168, 232, 238, .025) !important;
+  backdrop-filter: blur(8px) saturate(102%) !important;
 }
 
 html.codeface main.main-surface:not(.codeface-home-shell) [data-message-author-role="user"] {
-  border-color: rgba(119, 199, 207, .27) !important;
-  background: linear-gradient(135deg, rgba(47, 143, 170, .17), rgba(49, 85, 160, .13)) !important;
+  border-color: rgba(104, 185, 196, .22) !important;
+  background: linear-gradient(135deg, rgba(30, 52, 62, .74), rgba(24, 36, 49, .84)) !important;
+  box-shadow: inset 3px 0 rgba(104, 185, 196, .56) !important;
 }
 
-html.codeface main.main-surface:not(.codeface-home-shell) :is(p, li, blockquote) { color: var(--fzd-text) !important; }
-html.codeface main.main-surface:not(.codeface-home-shell) :is(code, pre) { border-color: rgba(119, 199, 207, .16) !important; }
-html.codeface main.main-surface:not(.codeface-home-shell) a { color: var(--fzd-blue-bright) !important; }
-html.codeface main.main-surface:not(.codeface-home-shell) hr { border-color: var(--fzd-line) !important; }
-
-/* Home: preserve the photograph, protect the left-side copy and native controls. */
-html.codeface main.main-surface.codeface-home-shell {
-  background-position: var(--codeface-background-position, center 48%) !important;
-  background-size: cover !important;
+html.codeface main.main-surface:not(.codeface-home-shell) :is(pre, code) {
+  border-color: rgba(104, 185, 196, .14) !important;
+  background-color: rgba(5, 14, 25, .82) !important;
 }
-
-html.codeface main.main-surface.codeface-home-shell::after {
-  content: "" !important;
-  position: absolute !important;
-  inset: 0 !important;
-  z-index: 0 !important;
-  pointer-events: none !important;
-  background:
-    linear-gradient(90deg, rgba(5, 8, 12, .72) 0%, rgba(5, 8, 12, .32) 42%, transparent 72%),
-    linear-gradient(0deg, rgba(5, 8, 12, .38), transparent 48%) !important;
-}
-
-html.codeface main.main-surface.codeface-home-shell > * { position: relative !important; z-index: 1 !important; }
 
 html.codeface .codeface-home > div:first-child > div:first-child > div:first-child {
-  border-color: transparent !important;
-  border-radius: 0 !important;
+  border: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
   backdrop-filter: none !important;
 }
 
-html.codeface[data-codeface-hero-fit="none"] .codeface-home [data-feature="game-source"] {
-  color: var(--fzd-text) !important;
-  text-shadow: 0 2px 18px rgba(2, 7, 14, .92) !important;
+html.codeface .codeface-home [data-feature="game-source"] {
+  color: #f7f9fb !important;
+  text-shadow: 0 2px 18px rgba(2, 7, 14, .96) !important;
 }
 
-html.codeface[data-codeface-hero-fit="none"] .codeface-home [data-feature="game-source"]::before {
-  color: var(--fzd-blue-bright) !important;
-  text-shadow: 0 2px 16px rgba(2, 7, 14, .94) !important;
+html.codeface .codeface-home [data-feature="game-source"]::before {
+  color: var(--fzd-cyan) !important;
+  text-shadow: 0 2px 14px rgba(2, 7, 14, .9) !important;
 }
 
-html.codeface[data-codeface-hero-fit="none"] .codeface-home [data-feature="game-source"]::after {
-  color: #d8e0ea !important;
+html.codeface .codeface-home [data-feature="game-source"]::after {
+  color: #bac4ce !important;
   text-shadow: 0 2px 14px rgba(2, 7, 14, .94) !important;
 }
 
-html.codeface #codeface-chrome.codeface-home-shell .codeface-orbit,
-html.codeface .composer-surface-chrome::before { display: none !important; content: none !important; }
-
-html.codeface #codeface-chrome.codeface-home-shell .codeface-quote {
-  border-color: rgba(119, 199, 207, .22) !important;
-  background: rgba(7, 11, 17, .72) !important;
-  color: var(--fzd-blue-bright) !important;
-  box-shadow: 0 8px 22px rgba(2, 7, 14, .28) !important;
-  backdrop-filter: blur(12px) !important;
-  pointer-events: none !important;
-}
-
 html.codeface .codeface-home [data-feature="game-source"] button {
-  margin-inline: .32em !important;
-  padding: .18em .62em .22em !important;
-  border: 1px solid rgba(119, 199, 207, .5) !important;
-  background: rgba(11, 16, 24, .82) !important;
-  color: var(--fzd-text) !important;
-  font: inherit !important;
-  font-size: .86em !important;
-  font-weight: 720 !important;
-  line-height: 1.2 !important;
-  text-decoration: none !important;
-  text-shadow: none !important;
-  box-shadow: 0 6px 18px rgba(2, 7, 14, .34), inset 0 1px rgba(244, 247, 250, .07) !important;
+  border: 1px solid rgba(104, 185, 196, .28) !important;
+  background: rgba(17, 25, 35, .9) !important;
+  color: #e8eef3 !important;
+  box-shadow: none !important;
 }
-
-html.codeface .codeface-home [data-feature="game-source"] button:hover {
-  border-color: var(--fzd-blue-bright) !important;
-  background: rgba(47, 143, 170, .23) !important;
-}
-
-html.codeface .codeface-home [data-feature="game-source"] button:active { transform: scale(.98) !important; }
-
-/* Home suggestions and the expanded native suggestion list. */
-html.codeface .codeface-home > div:first-child > div:first-child > div:first-child > div:nth-child(2) {
-  top: max(258px, calc(100cqh - 430px)) !important;
-}
-
-html.codeface .codeface-home .group\/home-suggestions:not(:has(.group\/home-suggestion-list-item)) {
-  display: flex !important;
-  flex-direction: column !important;
-  width: 100% !important;
-  height: auto !important;
-  max-height: none !important;
-}
-
-html.codeface .codeface-home .group\/home-suggestions:not(:has(.group\/home-suggestion-list-item)) > div { width: 100% !important; min-width: 0 !important; }
 
 html.codeface .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item) {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
-  width: 100% !important;
   min-height: 88px !important;
-  padding: 11px 14px !important;
-  border: 1px solid rgba(119, 199, 207, .22) !important;
-  border-radius: 16px !important;
-  background: linear-gradient(145deg, rgba(18, 26, 37, .92), rgba(11, 16, 24, .9)) !important;
+  padding: 12px 14px !important;
+  border: 1px solid rgba(104, 185, 196, .17) !important;
+  border-radius: 14px !important;
+  background: linear-gradient(145deg, rgba(14, 22, 31, .94), rgba(24, 36, 51, .9)) !important;
   color: var(--fzd-text) !important;
-  box-shadow: 0 10px 24px rgba(2, 7, 14, .34), inset 0 1px rgba(244, 247, 250, .055) !important;
-  backdrop-filter: blur(16px) saturate(106%) !important;
-  overflow: hidden !important;
+  box-shadow: 0 9px 24px rgba(2, 7, 14, .24), inset 0 1px rgba(168, 232, 238, .035) !important;
+  backdrop-filter: blur(12px) saturate(104%) !important;
   transition: border-color 180ms var(--fzd-ease), background-color 180ms var(--fzd-ease), transform 180ms var(--fzd-ease) !important;
 }
 
 html.codeface .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item):hover {
-  border-color: rgba(119, 199, 207, .62) !important;
-  background: linear-gradient(145deg, rgba(47, 143, 170, .24), rgba(49, 85, 160, .18)) !important;
+  border-color: rgba(104, 185, 196, .44) !important;
+  background: linear-gradient(145deg, rgba(22, 38, 47, .97), rgba(27, 43, 57, .95)) !important;
   transform: translateY(-2px) !important;
 }
 
-html.codeface .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item):active { transform: translateY(0) scale(.985) !important; }
+html.codeface .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item):active {
+  transform: translateY(0) scale(.985) !important;
+}
 
 html.codeface .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item)::after {
-  margin-top: 6px !important;
-  color: var(--fzd-muted) !important;
-  font-size: 13px !important;
-  line-height: 1.45 !important;
+  color: #aab6c3 !important;
 }
 
 html.codeface .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item) > span:first-child > span:first-child {
-  display: grid !important;
-  width: 34px !important;
-  height: 34px !important;
-  padding: 0 !important;
-  place-items: center !important;
-  border: 1px solid rgba(119, 199, 207, .3) !important;
+  border: 1px solid rgba(104, 185, 196, .26) !important;
   border-radius: 10px !important;
-  background: linear-gradient(145deg, var(--fzd-blue-bright), var(--fzd-blue)) !important;
+  background: rgba(104, 185, 196, .13) !important;
   box-shadow: none !important;
 }
 
-html.codeface .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item) svg {
-  position: static !important;
-  width: 18px !important;
-  height: 18px !important;
-  margin: auto !important;
-  color: var(--fzd-canvas) !important;
-  transform: none !important;
+html.codeface .codeface-home .codeface-project-bar {
+  border: 1px solid rgba(104, 185, 196, .16) !important;
+  border-radius: 14px !important;
+  background: rgba(13, 21, 30, .93) !important;
+  box-shadow: 0 9px 24px rgba(2, 7, 14, .24) !important;
+  backdrop-filter: blur(14px) saturate(104%) !important;
 }
 
-html.codeface .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item) > span:first-child {
-  width: 100% !important;
+html.codeface .codeface-home .codeface-project-selector > button {
+  border-color: rgba(130, 158, 177, .22) !important;
+  background: rgba(24, 36, 49, .9) !important;
   color: var(--fzd-text) !important;
-  font-weight: 690 !important;
-}
-
-html.codeface .codeface-home .group\/home-suggestions:has(.group\/home-suggestion-list-item) {
-  display: block !important;
-  width: min(580px, 100%) !important;
-  max-height: min(280px, 42cqh) !important;
-  padding: 8px !important;
-  border: 1px solid rgba(119, 199, 207, .24) !important;
-  border-radius: 18px !important;
-  background: rgba(11, 16, 24, .96) !important;
-  box-shadow: 0 18px 46px var(--fzd-shadow) !important;
-  backdrop-filter: blur(20px) !important;
-  overflow-y: auto !important;
-  overscroll-behavior: contain !important;
-}
-
-html.codeface .codeface-home .group\/home-suggestion-list-item {
-  min-height: 46px !important;
-  padding: 7px 12px !important;
-  gap: 11px !important;
-  border: 0 !important;
-  border-radius: 11px !important;
-  background: transparent !important;
-  color: var(--fzd-text) !important;
-  font-size: 13px !important;
-  text-align: left !important;
   box-shadow: none !important;
-  transform: none !important;
 }
-
-html.codeface .codeface-home .group\/home-suggestion-list-item:hover {
-  background: rgba(119, 199, 207, .1) !important;
-  box-shadow: inset 0 0 0 1px rgba(119, 199, 207, .15) !important;
-}
-
-html.codeface .codeface-home .group\/home-suggestion-list-item::after { display: none !important; content: none !important; }
-
-/* Native project strip and composer stay readable over every route. */
-html.codeface .codeface-home div:has(> .horizontal-scroll-fade-mask .group\/project-selector) {
-  padding: 32px 14px 10px !important;
-  margin-bottom: 8px !important;
-  top: 0 !important;
-  border: 1px solid rgba(119, 199, 207, .22) !important;
-  border-radius: 16px !important;
-  background: rgba(11, 16, 24, .9) !important;
-  box-shadow: 0 10px 26px rgba(2, 7, 14, .36) !important;
-  backdrop-filter: blur(16px) !important;
-}
-
-html.codeface .codeface-home div:has(> .horizontal-scroll-fade-mask .group\/project-selector)::before {
-  color: var(--fzd-muted) !important;
-  font-size: 11px !important;
-  font-weight: 700 !important;
-  letter-spacing: .06em !important;
-}
-
-html.codeface .codeface-home .group\/project-selector > button {
-  min-height: 36px !important;
-  border: 1px solid rgba(119, 199, 207, .2) !important;
-  border-radius: 10px !important;
-  background: rgba(24, 35, 52, .92) !important;
-  color: var(--fzd-text) !important;
-  transition: background-color 160ms var(--fzd-ease), border-color 160ms var(--fzd-ease), transform 120ms var(--fzd-ease) !important;
-}
-
-html.codeface .codeface-home .group\/project-selector > button:hover {
-  border-color: var(--fzd-blue-bright) !important;
-  background: rgba(47, 143, 170, .2) !important;
-}
-
-html.codeface .codeface-home .group\/project-selector > button:active { transform: scale(.98) !important; }
 
 html.codeface .composer-surface-chrome,
 html.codeface[data-codeface-shell="light"] .composer-surface-chrome {
-  color-scheme: dark !important;
-  border-color: rgba(119, 199, 207, .26) !important;
-  background: rgba(13, 20, 30, .94) !important;
-  color: var(--fzd-text) !important;
-  box-shadow: 0 16px 42px var(--fzd-shadow), inset 0 1px rgba(244, 247, 250, .06) !important;
+  border: 1px solid rgba(104, 185, 196, .24) !important;
+  background: rgba(13, 22, 31, .96) !important;
+  box-shadow: 0 18px 42px rgba(2, 7, 14, .38), inset 0 1px rgba(168, 232, 238, .045) !important;
   backdrop-filter: blur(18px) saturate(106%) !important;
 }
 
 html.codeface .composer-surface-chrome:focus-within {
-  border-color: rgba(119, 199, 207, .7) !important;
-  box-shadow: 0 16px 42px var(--fzd-shadow), inset 3px 0 var(--fzd-red) !important;
+  border-color: rgba(104, 185, 196, .54) !important;
+  box-shadow: 0 18px 42px rgba(2, 7, 14, .4), 0 0 0 3px rgba(104, 185, 196, .08), inset 0 -2px rgba(200, 75, 79, .52) !important;
 }
 
-html.codeface .ProseMirror { color: var(--fzd-text) !important; caret-color: var(--fzd-red) !important; }
-html.codeface .ProseMirror[data-placeholder]::before { color: var(--fzd-muted) !important; }
-
-@media (max-height: 760px) {
-  html.codeface .codeface-home > div:first-child > div:first-child > div:first-child > div:nth-child(2) { top: max(232px, calc(100cqh - 390px)) !important; }
-  html.codeface .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item) { min-height: 80px !important; padding-block: 9px !important; }
-}
+html.codeface .composer-surface-chrome::before { content: none !important; display: none !important; }
+html.codeface .ProseMirror { color: var(--fzd-text) !important; caret-color: var(--fzd-cyan) !important; }
+html.codeface #codeface-chrome .codeface-brand,
+html.codeface #codeface-chrome .codeface-status,
+html.codeface #codeface-chrome .codeface-quote,
+html.codeface #codeface-chrome .codeface-particles,
+html.codeface #codeface-chrome .codeface-orbit { display: none !important; }
+html.codeface ::selection { color: #f7f9fb; background: rgba(104, 185, 196, .28); }
 
 @media (max-width: 900px) {
-  html.codeface main.main-surface.codeface-home-shell::after { background: linear-gradient(90deg, rgba(5, 8, 12, .72), rgba(5, 8, 12, .16) 70%) !important; }
-  html.codeface .codeface-home > div:first-child > div:first-child > div:first-child > div:nth-child(2) { top: max(234px, calc(100cqh - 540px)) !important; }
-}
-
-@media (max-width: 560px) {
-  html.codeface main.main-surface.codeface-home-shell { background-position: 58% center !important; }
-  html.codeface main.main-surface.codeface-home-shell::after { background: linear-gradient(0deg, rgba(5, 8, 12, .76), rgba(5, 8, 12, .14) 74%) !important; }
-  html.codeface .codeface-home > div:first-child > div:first-child > div:first-child > div:nth-child(2) { top: max(218px, calc(100cqh - 650px)) !important; }
-  html.codeface .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item) { min-height: 70px !important; padding: 8px 10px !important; border-radius: 14px !important; }
+  html.codeface.codeface-home-route body,
+  html.codeface.codeface-home-route[data-codeface-shell="light"] body {
+    background-position: 66% 48% !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html.codeface *,
-  html.codeface *::before,
-  html.codeface *::after {
-    scroll-behavior: auto !important;
-    animation-duration: .01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: .01ms !important;
-  }
-
-  html.codeface :is(button, a):active,
-  html.codeface .codeface-home .group\/home-suggestions button { transform: none !important; }
-}
-
-/*
- * Shell reconciliation
- * Codex may report a light appearance while this theme is intentionally dark.
- * These route-scoped rules outrank the safe skin's light-shell palette without
- * recoloring native popovers such as Environment information.
- */
-html.codeface[data-codeface-shell="light"] {
-  color-scheme: dark !important;
-  --cf-bg: var(--fzd-canvas) !important;
-  --cf-panel: var(--fzd-panel) !important;
-  --cf-panel-2: var(--fzd-panel-raised) !important;
-  --cf-text: var(--fzd-text) !important;
-  --cf-muted: var(--fzd-muted) !important;
-  --cf-line: var(--fzd-line) !important;
-  --cf-ink-soft: #d8e0ea !important;
-}
-
-html.codeface[data-codeface-shell="light"] body {
-  background:
-    radial-gradient(circle at 74% 12%, rgba(49, 85, 160, .13), transparent 32%),
-    linear-gradient(145deg, var(--fzd-panel) 0%, var(--fzd-canvas) 48%, var(--fzd-canvas-deep) 100%) !important;
-  color: var(--fzd-text) !important;
-}
-
-html.codeface[data-codeface-shell="light"] aside.app-shell-left-panel {
-  border-color: rgba(119, 199, 207, .16) !important;
-  background: linear-gradient(180deg, rgba(24, 35, 52, .98), rgba(11, 16, 24, .99)) !important;
-  color: var(--fzd-text) !important;
-  box-shadow: 12px 0 34px var(--fzd-shadow), inset -1px 0 rgba(244, 247, 250, .05) !important;
-}
-
-html.codeface[data-codeface-shell="light"] aside.app-shell-left-panel :is(button, a, span, div) {
-  color: var(--fzd-text) !important;
-}
-
-html.codeface[data-codeface-shell="light"] aside.app-shell-left-panel svg { color: var(--fzd-muted) !important; }
-
-html.codeface[data-codeface-shell="light"] aside.app-shell-left-panel :is(button, a):hover {
-  background: rgba(119, 199, 207, .09) !important;
-  color: var(--fzd-text) !important;
-  box-shadow: inset 0 0 0 1px rgba(119, 199, 207, .14) !important;
-}
-
-html.codeface[data-codeface-shell="light"] aside.app-shell-left-panel :is([class~="bg-token-list-hover-background"], [aria-current="page"]) {
-  border-color: rgba(119, 199, 207, .26) !important;
-  background: linear-gradient(90deg, rgba(47, 143, 170, .22), rgba(49, 85, 160, .12)) !important;
-  color: var(--fzd-text) !important;
-  box-shadow: inset 3px 0 var(--fzd-blue-bright) !important;
-}
-
-/* Restore the photograph's blacks; the base light skin otherwise lays white over it. */
-html.codeface[data-codeface-shell="light"] main.main-surface.codeface-home-shell {
-  border-color: rgba(119, 199, 207, .16) !important;
-  background:
-    linear-gradient(180deg, rgba(5, 8, 12, .08), rgba(5, 8, 12, .34)),
-    var(--codeface-art) var(--codeface-background-position, center 48%) / cover no-repeat !important;
-  box-shadow: inset 0 1px rgba(244, 247, 250, .04), -8px 0 28px var(--fzd-shadow) !important;
-}
-
-html.codeface main.main-surface.codeface-home-shell::after,
-html.codeface[data-codeface-shell="light"] main.main-surface.codeface-home-shell::after {
-  background:
-    linear-gradient(90deg, rgba(5, 8, 12, .78) 0%, rgba(5, 8, 12, .46) 35%, rgba(5, 8, 12, .08) 62%, transparent 78%),
-    linear-gradient(0deg, rgba(5, 8, 12, .52), transparent 46%) !important;
-}
-
-html.codeface[data-codeface-shell="light"][data-codeface-hero-fit="none"] .codeface-home [data-feature="game-source"],
-html.codeface[data-codeface-shell="light"] .codeface-home [data-feature="game-source"] {
-  color: var(--fzd-text) !important;
-  text-shadow: 0 2px 18px rgba(2, 7, 14, .96) !important;
-}
-
-html.codeface[data-codeface-shell="light"][data-codeface-hero-fit="none"] .codeface-home [data-feature="game-source"]::before,
-html.codeface[data-codeface-shell="light"] .codeface-home [data-feature="game-source"]::before {
-  color: var(--fzd-blue-bright) !important;
-  text-shadow: 0 2px 14px rgba(2, 7, 14, .96) !important;
-}
-
-html.codeface[data-codeface-shell="light"][data-codeface-hero-fit="none"] .codeface-home [data-feature="game-source"]::after,
-html.codeface[data-codeface-shell="light"] .codeface-home [data-feature="game-source"]::after {
-  color: #d8e0ea !important;
-  text-shadow: 0 2px 14px rgba(2, 7, 14, .96) !important;
-}
-
-html.codeface[data-codeface-shell="light"] .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item) {
-  border-color: rgba(119, 199, 207, .24) !important;
-  background: linear-gradient(145deg, rgba(18, 26, 37, .96), rgba(11, 16, 24, .95)) !important;
-  color: var(--fzd-text) !important;
-  box-shadow: 0 10px 26px rgba(2, 7, 14, .44), inset 0 1px rgba(244, 247, 250, .055) !important;
-  backdrop-filter: blur(12px) saturate(104%) !important;
-}
-
-html.codeface[data-codeface-shell="light"] .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item)::after {
-  background: none !important;
-  color: var(--fzd-muted) !important;
-  -webkit-text-fill-color: currentColor !important;
-}
-
-html.codeface[data-codeface-shell="light"] .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item):hover {
-  border-color: rgba(119, 199, 207, .68) !important;
-  background: linear-gradient(145deg, rgba(47, 143, 170, .28), rgba(49, 85, 160, .2)) !important;
-}
-
-html.codeface[data-codeface-shell="light"] .codeface-home div:has(> .horizontal-scroll-fade-mask .group\/project-selector) {
-  border-color: rgba(119, 199, 207, .22) !important;
-  background: rgba(11, 16, 24, .94) !important;
-  box-shadow: 0 10px 28px rgba(2, 7, 14, .42) !important;
-}
-
-html.codeface[data-codeface-shell="light"] .codeface-home .group\/project-selector > button {
-  border-color: rgba(119, 199, 207, .22) !important;
-  background: rgba(24, 35, 52, .96) !important;
-  color: var(--fzd-text) !important;
-}
-
-/* Task/chat surface and title bar: scope dark treatment to the main app, not popovers. */
-html.codeface[data-codeface-shell="light"] main.main-surface:not(.codeface-home-shell) {
-  border-color: rgba(119, 199, 207, .16) !important;
-  background:
-    radial-gradient(circle at 88% 6%, rgba(49, 85, 160, .13), transparent 30%),
-    linear-gradient(155deg, #111925 0%, var(--fzd-canvas) 58%, #080d14 100%) !important;
-  color: var(--fzd-text) !important;
-  box-shadow: inset 0 1px rgba(244, 247, 250, .04), -8px 0 28px var(--fzd-shadow) !important;
-}
-
-html.codeface main.main-surface > header.app-header-tint,
-html.codeface[data-codeface-shell="light"] main.main-surface > header.app-header-tint {
-  border-bottom-color: rgba(119, 199, 207, .15) !important;
-  background: rgba(12, 18, 27, .94) !important;
-  color: var(--fzd-text) !important;
-  box-shadow: 0 8px 24px rgba(2, 7, 14, .24) !important;
-  backdrop-filter: blur(14px) saturate(104%) !important;
-}
-
-html.codeface main.main-surface > header.app-header-tint :is(button, a, span, div),
-html.codeface[data-codeface-shell="light"] main.main-surface > header.app-header-tint :is(button, a, span, div) {
-  color: var(--fzd-text) !important;
-}
-
-html.codeface main.main-surface > header.app-header-tint svg,
-html.codeface[data-codeface-shell="light"] main.main-surface > header.app-header-tint svg {
-  color: var(--fzd-muted) !important;
-}
-
-html.codeface[data-codeface-shell="light"] main.main-surface:not(.codeface-home-shell) article {
-  border-color: rgba(119, 199, 207, .14) !important;
-  background: rgba(18, 26, 37, .88) !important;
-  color: var(--fzd-text) !important;
-  box-shadow: 0 8px 24px rgba(2, 7, 14, .24), inset 0 1px rgba(244, 247, 250, .035) !important;
-}
-
-html.codeface .composer-surface-chrome,
-html.codeface[data-codeface-shell="light"] .composer-surface-chrome {
-  border-color: rgba(119, 199, 207, .28) !important;
-  background: #111925 !important;
-  color: var(--fzd-text) !important;
-  box-shadow: 0 14px 34px rgba(2, 7, 14, .48), inset 0 1px rgba(244, 247, 250, .055) !important;
-  backdrop-filter: none !important;
-}
-
-html.codeface .composer-surface-chrome :is(button, span, div, textarea, [contenteditable="true"]),
-html.codeface[data-codeface-shell="light"] .composer-surface-chrome :is(button, span, div, textarea, [contenteditable="true"]) {
-  color: var(--fzd-text) !important;
-}
-
-html.codeface .composer-surface-chrome svg,
-html.codeface[data-codeface-shell="light"] .composer-surface-chrome svg { color: var(--fzd-muted) !important; }
-
-html.codeface .composer-surface-chrome:focus-within,
-html.codeface[data-codeface-shell="light"] .composer-surface-chrome:focus-within {
-  border-color: rgba(119, 199, 207, .72) !important;
-  box-shadow: 0 14px 34px rgba(2, 7, 14, .48), inset 3px 0 var(--fzd-red) !important;
-}
-
-html.codeface #codeface-chrome .codeface-quote { display: none !important; }
-
-/* ========================================================================
-   Final UX system: semantic Codex tokens + subject-safe home composition
-   ======================================================================== */
-
-/* Keep native popovers untouched; retheme only the main Codex workspace. */
-html.codeface main.main-surface {
-  --color-token-foreground: #f2f5f8;
-  --color-token-text-primary: #f2f5f8;
-  --color-token-text-secondary: #aeb9c7;
-  --color-token-text-tertiary: #7f8c9f;
-  --color-token-description-foreground: #8f9cae;
-  --color-token-conversation-body: #c9d2dd;
-  --color-token-conversation-header: #8996a8;
-  --color-token-conversation-summary-leading: #9aa7b8;
-  --color-token-conversation-summary-trailing: #748196;
-  --color-token-non-assistant-body-descendant: #aeb9c7;
-  --color-token-icon-foreground: #aeb9c7;
-  --color-token-disabled-foreground: #69778b;
-  --color-token-border: rgba(126, 151, 178, .18);
-  --color-token-border-default: rgba(126, 151, 178, .18);
-  --color-token-border-light: rgba(126, 151, 178, .11);
-  --color-token-border-heavy: rgba(126, 151, 178, .28);
-  --color-token-bg-primary: #0b1018;
-  --color-token-bg-secondary: #101925;
-  --color-token-bg-tertiary: #172231;
-  --color-token-bg-fog: rgba(126, 151, 178, .06);
-  --color-token-main-surface-primary: #0b1018;
-  --color-token-dropdown-background: #172231;
-  --color-token-dropdown-foreground: #f2f5f8;
-  --color-token-menu-background: rgba(23, 34, 49, .98);
-  --color-token-menu-border: rgba(126, 151, 178, .22);
-  --color-token-input-background: #111b29;
-  --color-token-input-foreground: #f2f5f8;
-  --color-token-input-placeholder-foreground: #748196;
-  --color-token-input-border: rgba(119, 199, 207, .28);
-  --color-token-list-hover-background: rgba(119, 199, 207, .09);
-  --color-token-list-active-selection-background: rgba(47, 143, 170, .18);
-  --color-token-list-active-selection-foreground: #f2f5f8;
-  --color-token-list-active-selection-icon-foreground: #77c7cf;
-  --color-token-toolbar-hover-background: rgba(119, 199, 207, .09);
-  --color-token-button-secondary-hover-background: rgba(119, 199, 207, .1);
-  --color-token-badge-background: rgba(119, 199, 207, .1);
-  --color-token-badge-foreground: #c9d2dd;
-  --color-token-focus-border: #77c7cf;
-  --color-token-primary: #77c7cf;
-  --color-token-link: #77c7cf;
-  --color-token-text-link-foreground: #77c7cf;
-  --color-token-text-link-active-foreground: #9bdbe0;
-  --color-token-diff-surface: #131e2c;
-  --color-token-text-preformat-background: #172231;
-  --color-token-text-preformat-foreground: #e7edf4;
-  --color-token-text-code-block-background: rgba(126, 151, 178, .08);
-  --color-token-scrollbar-slider-background: rgba(126, 151, 178, .18);
-  --color-token-scrollbar-slider-hover-background: rgba(126, 151, 178, .28);
-  --color-token-scrollbar-slider-active-background: rgba(119, 199, 207, .36);
-  --color-token-button-background: #77c7cf;
-  --color-token-button-foreground: #071018;
-  --color-token-button-border: rgba(119, 199, 207, .42);
-  --color-token-on-accent: #071018;
-}
-
-html.codeface main.main-surface:not(.codeface-home-shell) [role="main"] {
-  color: #f2f5f8 !important;
-}
-
-html.codeface main.main-surface:not(.codeface-home-shell) :is(
-  .text-token-foreground,
-  .text-token-text-primary
-) { color: #f2f5f8 !important; }
-
-html.codeface main.main-surface:not(.codeface-home-shell) :is(
-  .text-token-text-secondary,
-  .text-token-conversation-body
-) { color: #aeb9c7 !important; }
-
-html.codeface main.main-surface:not(.codeface-home-shell) :is(
-  .text-token-description-foreground,
-  .text-token-muted-foreground
-) { color: #8f9cae !important; }
-
-html.codeface main.main-surface:not(.codeface-home-shell) .group\/turn-diff-header,
-html.codeface main.main-surface:not(.codeface-home-shell) [class*="turn-diff"] {
-  color: #e7edf4 !important;
-}
-
-html.codeface main.main-surface:not(.codeface-home-shell) .bg-token-dropdown-background\/50 {
-  border: 1px solid rgba(126, 151, 178, .18) !important;
-  background: rgba(23, 34, 49, .92) !important;
-  box-shadow: 0 12px 30px rgba(2, 7, 14, .2) !important;
-}
-
-/* Quiet top bar: title first, decorative brand second. */
-html.codeface #codeface-chrome.codeface-home-shell .codeface-brand {
-  left: 28px !important;
-  gap: 9px !important;
-  opacity: .9 !important;
-}
-
-html.codeface #codeface-chrome.codeface-home-shell .codeface-portal-mark {
-  width: 25px !important;
-  height: 25px !important;
-  border-color: rgba(119, 199, 207, .5) !important;
-  color: var(--fzd-blue-bright) !important;
-  font-size: 17px !important;
-  box-shadow: none !important;
-}
-
-html.codeface #codeface-chrome.codeface-home-shell .codeface-brand b {
-  color: var(--fzd-blue-bright) !important;
-  font-size: 13px !important;
-  letter-spacing: .02em !important;
-}
-
-html.codeface #codeface-chrome.codeface-home-shell .codeface-brand small {
-  margin-top: 2px !important;
-  color: #718097 !important;
-  font-size: 8px !important;
-  letter-spacing: .14em !important;
-}
-
-/* Preserve the athlete on the right; all functional UI lives in a left rail. */
-html.codeface main.main-surface.codeface-home-shell,
-html.codeface[data-codeface-shell="light"] main.main-surface.codeface-home-shell {
-  background-position: center 46% !important;
-}
-
-html.codeface main.main-surface.codeface-home-shell::after,
-html.codeface[data-codeface-shell="light"] main.main-surface.codeface-home-shell::after {
-  background:
-    linear-gradient(90deg, rgba(5, 8, 12, .92) 0%, rgba(5, 8, 12, .76) 29%, rgba(5, 8, 12, .28) 48%, transparent 66%),
-    linear-gradient(0deg, rgba(5, 8, 12, .38), transparent 42%) !important;
-}
-
-html.codeface .codeface-home {
-  --thread-content-max-width: min(100%, calc(100cqw - 44px)) !important;
-}
-
-html.codeface .codeface-home > div:first-child > div:first-child {
-  flex-basis: 610px !important;
-  min-height: 610px !important;
-}
-
-html.codeface .codeface-home > div:first-child > div:first-child > div:first-child {
-  width: calc(100% - 76px) !important;
-  height: 190px !important;
-  min-height: 190px !important;
-  margin-left: 38px !important;
-  margin-right: auto !important;
-}
-
-html.codeface .codeface-home > div:first-child > div:first-child > div:first-child > div:first-child {
-  padding-left: 0 !important;
-}
-
-html.codeface .codeface-home > div:first-child > div:first-child > div:first-child > div:first-child > div:first-child {
-  width: 640px !important;
-}
-
-html.codeface .codeface-home [data-feature="game-source"] {
-  max-width: 640px !important;
-  font-size: clamp(23px, 1.8vw, 30px) !important;
-  line-height: 1.22 !important;
-  letter-spacing: -.025em !important;
-}
-
-html.codeface .codeface-home [data-feature="game-source"]::before {
-  margin-bottom: 12px !important;
-  color: var(--fzd-blue-bright) !important;
-  font-size: 11px !important;
-  letter-spacing: .12em !important;
-}
-
-html.codeface .codeface-home [data-feature="game-source"]::after {
-  margin-top: 15px !important;
-  color: #aeb9c7 !important;
-  font-size: 13px !important;
-}
-
-html.codeface .codeface-home [data-feature="game-source"] button {
-  border-color: rgba(119, 199, 207, .34) !important;
-  background: rgba(17, 27, 41, .9) !important;
-  color: #f2f5f8 !important;
-  box-shadow: none !important;
-}
-
-html.codeface .codeface-home > div:first-child > div:first-child > div:first-child > div:nth-child(2) {
-  left: 38px !important;
-  right: 38px !important;
-  top: 215px !important;
-  width: auto !important;
-}
-
-html.codeface .codeface-home .group\/home-suggestions:not(:has(.group\/home-suggestion-list-item)) > div {
-  width: 100% !important;
-}
-
-html.codeface .codeface-home .group\/home-suggestions:not(:has(.group\/home-suggestion-list-item)) > div > div {
-  display: grid !important;
-  width: 520px !important;
-  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  gap: 12px !important;
-}
-
-html.codeface .codeface-home .group\/home-suggestions:not(:has(.group\/home-suggestion-list-item)) > div > div > * {
-  display: block !important;
-  min-width: 0 !important;
-}
-
-html.codeface .codeface-home .group\/home-suggestions:not(:has(.group\/home-suggestion-list-item)) > div > div > *:last-child:nth-child(odd) {
-  grid-column: 1 / -1 !important;
-}
-
-html.codeface .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item),
-html.codeface[data-codeface-shell="light"] .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item) {
-  min-height: 104px !important;
-  padding: 14px 16px !important;
-  border-radius: 14px !important;
-  border-color: rgba(119, 199, 207, .18) !important;
-  background: rgba(13, 21, 32, .94) !important;
-  box-shadow: 0 10px 26px rgba(2, 7, 14, .3), inset 0 1px rgba(244, 247, 250, .04) !important;
-  backdrop-filter: blur(10px) saturate(104%) !important;
-}
-
-html.codeface .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item):hover,
-html.codeface[data-codeface-shell="light"] .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item):hover {
-  border-color: rgba(119, 199, 207, .54) !important;
-  background: rgba(24, 42, 56, .96) !important;
-  box-shadow: 0 13px 28px rgba(2, 7, 14, .34), inset 3px 0 var(--fzd-blue-bright) !important;
-  transform: translateY(-1px) !important;
-}
-
-html.codeface .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item) > span:first-child > span:first-child {
-  width: 32px !important;
-  height: 32px !important;
-  border-radius: 9px !important;
-  background: var(--fzd-blue-bright) !important;
-}
-
-html.codeface .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item)::after,
-html.codeface[data-codeface-shell="light"] .codeface-home .group\/home-suggestions button:not(.group\/home-suggestion-list-item)::after {
-  color: #9da9b9 !important;
-  font-size: 12px !important;
-  -webkit-text-fill-color: currentColor !important;
-}
-
-/* Project strip and composer form one compact control stack on the left. */
-html.codeface .codeface-home div:has(> .horizontal-scroll-fade-mask .group\/project-selector),
-html.codeface[data-codeface-shell="light"] .codeface-home div:has(> .horizontal-scroll-fade-mask .group\/project-selector) {
-  width: 520px !important;
-  margin-left: 38px !important;
-  margin-right: auto !important;
-  padding: 29px 12px 9px !important;
-  border-radius: 14px !important;
-  border-color: rgba(119, 199, 207, .18) !important;
-  background: rgba(11, 18, 28, .96) !important;
-  box-shadow: 0 10px 28px rgba(2, 7, 14, .34) !important;
-  backdrop-filter: blur(10px) !important;
-}
-
-html.codeface .codeface-home div:has(> .horizontal-scroll-fade-mask .group\/project-selector)::before {
-  color: #7f8c9f !important;
-  font-size: 10px !important;
-  letter-spacing: .08em !important;
-}
-
-html.codeface .codeface-home .composer-surface-chrome {
-  width: 520px !important;
-  margin-left: 38px !important;
-  margin-right: auto !important;
-  border-radius: 16px !important;
-}
-
-html.codeface .codeface-home .group\/project-selector > button,
-html.codeface[data-codeface-shell="light"] .codeface-home .group\/project-selector > button {
-  color: #dce4ed !important;
-}
-
-@media (max-width: 1040px) {
-  html.codeface .codeface-home > div:first-child > div:first-child > div:first-child,
-  html.codeface .codeface-home div:has(> .horizontal-scroll-fade-mask .group\/project-selector),
-  html.codeface .codeface-home .composer-surface-chrome {
-    width: min(520px, calc(100cqw - 56px)) !important;
-    margin-left: 28px !important;
-  }
-}
-
-@media (max-width: 680px) {
-  html.codeface main.main-surface.codeface-home-shell,
-  html.codeface[data-codeface-shell="light"] main.main-surface.codeface-home-shell {
-    background-position: 63% center !important;
-  }
-
-  html.codeface main.main-surface.codeface-home-shell::after,
-  html.codeface[data-codeface-shell="light"] main.main-surface.codeface-home-shell::after {
-    background: linear-gradient(0deg, rgba(5, 8, 12, .9), rgba(5, 8, 12, .25) 76%) !important;
-  }
-
-  html.codeface .codeface-home > div:first-child > div:first-child > div:first-child > div:nth-child(2) {
-    top: 205px !important;
-  }
-
-  html.codeface .codeface-home .group\/home-suggestions:not(:has(.group\/home-suggestion-list-item)) > div > div {
-    width: min(520px, calc(100cqw - 56px)) !important;
-    grid-template-columns: 1fr !important;
-  }
+  html.codeface :is(button, a, [role="button"]):hover,
+  html.codeface :is(button, a, [role="button"]):active { transform: none !important; }
 }

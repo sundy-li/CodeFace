@@ -552,4 +552,39 @@ mod tests {
         assert!(error.to_string().contains("cannot load external"));
         fs::remove_dir_all(root).expect("remove theme root");
     }
+
+    #[test]
+    fn injector_detects_modern_composer_only_home_without_matching_conversations() {
+        assert!(INJECTOR.contains(".composer-surface-chrome"));
+        assert!(INJECTOR.contains("[data-thread-find-target=\"conversation\"]"));
+        assert!(INJECTOR.contains("const home = classicHome || modernHome"));
+    }
+
+    #[test]
+    fn project_and_composer_layout_has_a_shared_safety_gap() {
+        for marker in [
+            "codeface-project-selector",
+            "codeface-project-bar",
+            "codeface-project-section",
+            "codeface-composer-stack",
+        ] {
+            assert!(INJECTOR.contains(&format!("syncMarker(\"{marker}\"")));
+        }
+        assert!(INJECTOR.contains("gap: 12px !important"));
+        assert!(INJECTOR.contains("margin-bottom: 0 !important"));
+        assert!(INJECTOR.contains("min-height: 68px !important"));
+        assert!(CSS.contains(".codeface-home .codeface-project-bar"));
+
+        for theme_css in [
+            include_str!("../../resources/theme-packs/cyberpunk/codeface.css"),
+            include_str!("../../resources/theme-packs/fzd/codeface.css"),
+            include_str!("../../resources/theme-packs/lovely-girl/codeface.css"),
+            include_str!("../../resources/theme-packs/messi/codeface.css"),
+            include_str!("../../resources/theme-packs/qq2007/codeface.css"),
+            include_str!("../../resources/theme-pack-template/codeface.css"),
+        ] {
+            assert!(theme_css.contains(".codeface-home .codeface-project-bar"));
+            assert!(theme_css.contains(".codeface-project-selector > button"));
+        }
+    }
 }

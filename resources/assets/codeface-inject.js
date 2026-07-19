@@ -44,6 +44,33 @@ html.codeface [data-app-action-sidebar-project-row] > div:nth-child(2) button {
   pointer-events: auto !important;
 }
 
+/* Keep the native project utility bar and composer in normal flow.
+   Codex currently ships both project wrappers with negative bottom margins;
+   these stable markers prevent their contents from overlapping the prompt. */
+html.codeface .codeface-composer-stack {
+  gap: 12px !important;
+}
+html.codeface .codeface-project-section {
+  min-height: 0 !important;
+  margin-bottom: 0 !important;
+  overflow: visible !important;
+}
+html.codeface .codeface-project-bar {
+  position: relative !important;
+  top: 0 !important;
+  height: auto !important;
+  min-height: 68px !important;
+  margin-bottom: 0 !important;
+  padding-top: 28px !important;
+  padding-bottom: 12px !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+}
+html.codeface .codeface-project-selector {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
 /* All themes share compact native prompt shortcuts on the home route. */
 html.codeface[data-codeface-suggestions="false"] [class~="group/home-suggestions"],
 html.codeface[data-codeface-suggestions="false"] div:has(> div > [class~="group/home-suggestions"]) {
@@ -590,7 +617,7 @@ html.codeface [class~="group/home-suggestions"] button[data-codeface-suggestion=
       document.querySelector("main.main-surface") ||
       document.querySelector("main");
     const homeIndicator = document.querySelector('[data-testid="home-icon"]');
-    const home =
+    const classicHome =
       homeIndicator?.closest('[role="main"]') ||
       [...document.querySelectorAll('[role="main"]')].find(
         (candidate) =>
@@ -598,12 +625,52 @@ html.codeface [class~="group/home-suggestions"] button[data-codeface-suggestion=
           candidate.querySelector(".group\\\\/home-suggestions"),
       ) ||
       null;
+    const modernHome =
+      shellMain?.querySelector(".composer-surface-chrome") &&
+      !shellMain.querySelector('[data-thread-find-target="conversation"]')
+        ? shellMain
+        : null;
+    const home = classicHome || modernHome;
     for (const candidate of document.querySelectorAll(
       '[role="main"].codeface-home',
     )) {
       if (candidate !== home) candidate.classList.remove("codeface-home");
     }
     if (home) home.classList.add("codeface-home");
+    const projectSelector =
+      home?.querySelector('[class~="group/project-selector"]') || null;
+    const projectMask = projectSelector?.closest(
+      ".horizontal-scroll-fade-mask",
+    );
+    const projectBar = projectMask?.parentElement || null;
+    const composer = home?.querySelector(".composer-surface-chrome") || null;
+    let composerStack = null;
+    for (
+      let candidate = projectSelector?.parentElement;
+      candidate && candidate !== home?.parentElement;
+      candidate = candidate.parentElement
+    ) {
+      if (composer && candidate.contains(composer)) {
+        composerStack = candidate;
+        break;
+      }
+    }
+    const projectSection = composerStack
+      ? [...composerStack.children].find(
+          (candidate) =>
+            candidate !== composer && candidate.contains(projectSelector),
+        ) || null
+      : null;
+    const syncMarker = (className, node) => {
+      document.querySelectorAll(`.${className}`).forEach((candidate) => {
+        if (candidate !== node) candidate.classList.remove(className);
+      });
+      node?.classList.add(className);
+    };
+    syncMarker("codeface-project-selector", projectSelector);
+    syncMarker("codeface-project-bar", projectBar);
+    syncMarker("codeface-project-section", projectSection);
+    syncMarker("codeface-composer-stack", composerStack);
     if (home) {
       home
         .querySelectorAll(".group\\/home-suggestions button")
@@ -674,6 +741,16 @@ html.codeface [class~="group/home-suggestions"] button[data-codeface-suggestion=
     document
       .querySelectorAll(".codeface-home-shell")
       .forEach((node) => node.classList.remove("codeface-home-shell"));
+    for (const className of [
+      "codeface-project-selector",
+      "codeface-project-bar",
+      "codeface-project-section",
+      "codeface-composer-stack",
+    ]) {
+      document
+        .querySelectorAll(`.${className}`)
+        .forEach((node) => node.classList.remove(className));
+    }
     document.getElementById(STYLE_ID)?.remove();
     document.getElementById(CHROME_ID)?.remove();
     const state = window[STATE_KEY];

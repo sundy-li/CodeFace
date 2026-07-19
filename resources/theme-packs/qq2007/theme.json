@@ -2,6 +2,8 @@
   "schemaVersion": 2,
   "id": "qq2007",
   "name": "QQ 2007",
+  "version": "2.0.0",
+  "description": "A polished 2007 desktop-messenger workspace with a continuous blue home gradient, glossy pale surfaces, crisp navy text, and a friendly Codex avatar badge.",
   "brandSubtitle": "QQ",
   "tagline": "代码有问题？找我！你的智能伙伴 Codex 随时在线",
   "projectPrefix": "项目 · ",
@@ -15,39 +17,39 @@
     "heroFit": "none",
     "heroPosition": "center center",
     "backgroundPosition": "center center",
-    "taskOverlay": 0.38,
-    "sidebarWidth": 356,
-    "contentMaxWidth": 900,
-    "composerMaxWidth": 820,
-    "heroHeight": 196
+    "taskOverlay": 0.34,
+    "sidebarWidth": 272,
+    "contentMaxWidth": 980,
+    "composerMaxWidth": 840,
+    "heroHeight": 220
   },
   "typography": {
     "fontFamily": "Tahoma, 'Microsoft YaHei UI', 'Segoe UI', sans-serif",
     "monoFontFamily": "Consolas, 'Courier New', monospace",
-    "fontSize": 13,
-    "lineHeight": 1.52
+    "fontSize": 14,
+    "lineHeight": 1.56
   },
   "geometry": {
     "radiusXs": 2,
-    "radiusSm": 3,
-    "radiusMd": 5,
-    "radiusLg": 7,
-    "radiusXl": 9,
+    "radiusSm": 7,
+    "radiusMd": 11,
+    "radiusLg": 15,
+    "radiusXl": 20,
     "borderWidth": 1,
-    "density": 0.88,
-    "uiScale": 0.94
+    "density": 1,
+    "uiScale": 1
   },
   "effects": {
-    "blur": 0,
-    "saturation": 1.05,
-    "shadowColor": "rgba(23, 91, 161, .28)",
-    "shadowStrength": 0.75,
-    "textureOpacity": 0.16,
-    "motionScale": 0.35
+    "blur": 8,
+    "saturation": 1.02,
+    "shadowColor": "rgba(23, 91, 161, .18)",
+    "shadowStrength": 0.8,
+    "textureOpacity": 0.04,
+    "motionScale": 0.7
   },
   "chrome": {
     "brand": true,
-    "status": true,
+    "status": false,
     "quote": false,
     "particles": false,
     "orbit": false
@@ -63,23 +65,5 @@
     "text": "#132F52",
     "muted": "#536F8D",
     "line": "#79A9D9"
-  },
-  "appearance": {
-    "dark": {
-      "colors": {
-        "background": "#DDEEFF",
-        "panel": "#FFFFFF",
-        "panelAlt": "#EAF5FF",
-        "text": "#132F52",
-        "muted": "#536F8D",
-        "line": "#79A9D9"
-      }
-    }
-  },
-  "variables": {
-    "--cf-xp-blue": "#1672D4",
-    "--cf-xp-blue-deep": "#0756AD",
-    "--cf-xp-blue-pale": "#EAF5FF",
-    "--cf-xp-gloss": "rgba(255,255,255,.72)"
   }
 }

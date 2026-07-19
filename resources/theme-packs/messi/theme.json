@@ -2,6 +2,8 @@
   "schemaVersion": 2,
   "id": "messi",
   "name": "Messi · World Champion",
+  "version": "2.0.0",
+  "description": "A bright championship workspace with a continuous stadium panorama, ice-blue surfaces, focused celeste interaction states, and restrained trophy-gold details.",
   "brandSubtitle": "THE CHAMPION'S WORKSPACE",
   "tagline": "让伟大的想法，在冠军之夜继续生长",
   "projectPrefix": "当前项目 · ",
@@ -12,10 +14,10 @@
   "image": "background.png",
   "layout": {
     "heroFit": "none",
-    "heroPosition": "center center",
-    "backgroundPosition": "center 42%",
-    "taskOverlay": 0.35,
-    "sidebarWidth": 300,
+    "heroPosition": "50% 50%",
+    "backgroundPosition": "50% 50%",
+    "taskOverlay": 0.38,
+    "sidebarWidth": 272,
     "contentMaxWidth": 980,
     "composerMaxWidth": 840,
     "heroHeight": 220
@@ -45,7 +47,7 @@
     "motionScale": 0.8
   },
   "chrome": {
-    "brand": true,
+    "brand": false,
     "status": false,
     "quote": false,
     "particles": false,
@@ -55,10 +57,10 @@
     "background": "#EAF2F6",
     "panel": "#F8FBFD",
     "panelAlt": "#DCEAF1",
-    "accent": "#8A5B16",
-    "accentAlt": "#E8C77C",
-    "secondary": "#4A9CC3",
-    "highlight": "#164B6D",
+    "accent": "#3A91B8",
+    "accentAlt": "#79BFD9",
+    "secondary": "#A8731D",
+    "highlight": "#D5AE57",
     "text": "#172733",
     "muted": "#5B6C78",
     "line": "#B8CBD5"

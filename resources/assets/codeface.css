@@ -103,6 +103,28 @@ html.codeface main.main-surface {
   overflow: hidden !important;
 }
 
+/* Settings use a separate shell from the task workspace. Keep their sidebar,
+   canvas, and grouped option cards in the active theme's semantic palette even
+   when Codex itself starts in light appearance. */
+html.codeface div.app-shell-left-panel:has([data-settings-panel-slug]) {
+  background: linear-gradient(180deg, var(--cf-panel), var(--cf-bg)) !important;
+  border-right: 1px solid var(--cf-line) !important;
+  color: var(--cf-text) !important;
+  box-shadow: none !important;
+}
+
+html.codeface div.app-shell-left-panel:has([data-settings-panel-slug]) + div {
+  background: var(--cf-bg) !important;
+  color: var(--cf-text) !important;
+}
+
+html.codeface:has([data-settings-panel-slug]) div[class*="rounded-2xl"][class*="border-token-border"] {
+  background: var(--cf-panel-2) !important;
+  border-color: var(--cf-line) !important;
+  color: var(--cf-text) !important;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, .14) !important;
+}
+
 /* Only the home route may use the imported art as a full-surface wallpaper. */
 html.codeface main.main-surface.codeface-home-shell {
   background:
@@ -491,7 +513,7 @@ html.codeface .composer-surface-chrome::before {
   box-shadow: 0 0 14px color-mix(in srgb, var(--cf-green) 30%, transparent);
 }
 
-.codeface-home div:has(> .horizontal-scroll-fade-mask .group\/project-selector) {
+.codeface-home .codeface-project-bar {
   position: relative;
   padding-top: 28px !important;
   border: 1px solid rgba(54, 215, 232, .18);
@@ -499,7 +521,7 @@ html.codeface .composer-surface-chrome::before {
   background: linear-gradient(180deg, rgba(10, 27, 33, .97), rgba(8, 21, 28, .92)) !important;
 }
 
-.codeface-home div:has(> .horizontal-scroll-fade-mask .group\/project-selector)::before {
+.codeface-home .codeface-project-bar::before {
   content: var(--codeface-project-label, "◉  选择项目");
   position: absolute;
   left: 13px;
@@ -512,7 +534,7 @@ html.codeface .composer-surface-chrome::before {
   white-space: nowrap;
 }
 
-.codeface-home .group\/project-selector > button {
+.codeface-home .codeface-project-selector > button {
   border-color: color-mix(in srgb, var(--cf-green) 30%, transparent) !important;
   background: linear-gradient(135deg, rgba(16, 45, 43, .94), rgba(22, 23, 49, .90)) !important;
   color: var(--cf-text) !important;
@@ -757,7 +779,7 @@ html.codeface[data-codeface-shell="light"] .codeface-home .group\/home-suggestio
   background: linear-gradient(145deg, var(--cf-lime), var(--cf-green)) !important;
 }
 
-html.codeface[data-codeface-shell="light"] .codeface-home div:has(> .horizontal-scroll-fade-mask .group\/project-selector) {
+html.codeface[data-codeface-shell="light"] .codeface-home .codeface-project-bar {
   border-color: color-mix(in srgb, var(--cf-green) 28%, transparent) !important;
   background: linear-gradient(180deg,
     color-mix(in srgb, var(--cf-panel) 94%, transparent),
@@ -766,7 +788,7 @@ html.codeface[data-codeface-shell="light"] .codeface-home div:has(> .horizontal-
   backdrop-filter: blur(14px) saturate(110%) !important;
 }
 
-html.codeface[data-codeface-shell="light"] .codeface-home .group\/project-selector > button {
+html.codeface[data-codeface-shell="light"] .codeface-home .codeface-project-selector > button {
   border-color: color-mix(in srgb, var(--cf-green) 28%, transparent) !important;
   background: color-mix(in srgb, var(--cf-panel) 88%, transparent) !important;
   color: var(--cf-text) !important;

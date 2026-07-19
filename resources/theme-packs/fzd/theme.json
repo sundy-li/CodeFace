@@ -2,6 +2,8 @@
   "schemaVersion": 2,
   "id": "fzd",
   "name": "樊振东 · 冠军时刻",
+  "version": "2.0.1",
+  "description": "A focused championship-arena workspace with a continuous Olympic-stage background, charcoal steel surfaces, restrained cyan interaction states, and a precise Chinese-red accent.",
   "brandSubtitle": "BORN FOR THE BIG STAGE",
   "tagline": "心怀热爱，奔赴每一个冠军时刻",
   "projectPrefix": "准备出战 · ",
@@ -12,10 +14,10 @@
   "image": "background.png",
   "layout": {
     "heroFit": "none",
-    "heroPosition": "center 48%",
-    "backgroundPosition": "center 48%",
-    "taskOverlay": 0.35,
-    "sidebarWidth": 356,
+    "heroPosition": "62% 48%",
+    "backgroundPosition": "62% 48%",
+    "taskOverlay": 0.42,
+    "sidebarWidth": 272,
     "contentMaxWidth": 980,
     "composerMaxWidth": 840,
     "heroHeight": 248
@@ -45,22 +47,22 @@
     "motionScale": 0.85
   },
   "chrome": {
-    "brand": true,
+    "brand": false,
     "status": false,
     "quote": false,
     "particles": false,
     "orbit": false
   },
   "colors": {
-    "background": "#0B1018",
-    "panel": "#121A25",
-    "panelAlt": "#182334",
-    "accent": "#2F8FAA",
-    "accentAlt": "#77C7CF",
+    "background": "#0A0F16",
+    "panel": "#111923",
+    "panelAlt": "#182433",
+    "accent": "#68B9C4",
+    "accentAlt": "#78C8D0",
     "secondary": "#3155A0",
-    "highlight": "#D13B3F",
-    "text": "#F4F7FA",
+    "highlight": "#C84B4F",
+    "text": "#F2F5F8",
     "muted": "#A7B2C2",
-    "line": "#344256"
+    "line": "#304052"
   }
 }

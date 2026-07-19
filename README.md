@@ -59,6 +59,10 @@ background.png
 
 The template is available in [`resources/theme-pack-template`](resources/theme-pack-template). Double-click a theme in the theme list to edit its source directly.
 
+## Codex Skill
+
+The repository includes a reusable [`codeface` Skill](skills/codeface/SKILL.md) for agents that create, import, apply, verify, repair, or restore CodeFace themes. Install the `skills/codeface` directory in your Codex Skills location, then invoke it with `$codeface`. The Skill uses CodeFace's own theme storage, Rust CLI, loopback-only CDP workflow, and runtime verification instead of introducing a separate injector.
+
 ### Built-in themes
 
 CodeFace includes five ready-to-use theme packs. Their full source is available in [`resources/theme-packs`](resources/theme-packs), and the preview images are collected in [`resources/examples`](resources/examples).
@@ -141,6 +145,8 @@ The same CodeFace Rust executable provides these commands:
 
 ```text
 codeface --apply-active
+codeface --apply-theme cyberpunk
+codeface --import-theme /path/to/theme-directory
 codeface --verify 9341
 codeface --restore
 codeface --print-data-root

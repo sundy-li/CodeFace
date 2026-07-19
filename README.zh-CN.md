@@ -58,6 +58,10 @@ background.png
 
 模板位于 [`resources/theme-pack-template`](resources/theme-pack-template)。主题列表中双击主题可以直接编辑源码。
 
+## Codex Skill
+
+仓库内包含一个可复用的 [`codeface` Skill](skills/codeface/SKILL.md)，可让 Agent 创建、导入、应用、验证、修复或恢复 CodeFace 主题。将 `skills/codeface` 目录安装到 Codex Skills 目录后，即可通过 `$codeface` 调用。这个 Skill 直接使用 CodeFace 自己的主题存储、Rust CLI、仅限本机回环地址的 CDP 工作流和运行时验证，不会引入另一套注入器。
+
 ### 内置主题
 
 CodeFace 内置了 5 套可以直接使用的主题。完整主题源码位于 [`resources/theme-packs`](resources/theme-packs)，预览图统一收录在 [`resources/examples`](resources/examples)。
@@ -143,6 +147,8 @@ dist/windows/CodeFace.ico
 
 ```text
 codeface --apply-active
+codeface --apply-theme cyberpunk
+codeface --import-theme /path/to/theme-directory
 codeface --verify 9341
 codeface --restore
 codeface --print-data-root

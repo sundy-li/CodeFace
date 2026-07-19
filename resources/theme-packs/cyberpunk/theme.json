@@ -2,6 +2,8 @@
   "schemaVersion": 2,
   "id": "cyberpunk",
   "name": "Cyberpunk · Neon Skyline",
+  "version": "2.1.5",
+  "description": "A continuous neon-city workspace with a softened panoramic sidebar, fog-blue glass surfaces, and focused cyan interaction states.",
   "brandSubtitle": "NEON CITY OPERATIONS",
   "tagline": "接入夜城网络，让每一次创造穿越霓虹",
   "projectPrefix": "当前节点 · ",
@@ -13,9 +15,9 @@
   "layout": {
     "heroFit": "none",
     "heroPosition": "center center",
-    "backgroundPosition": "center 42%",
-    "taskOverlay": 0.35,
-    "sidebarWidth": 356,
+    "backgroundPosition": "58% 42%",
+    "taskOverlay": 0.42,
+    "sidebarWidth": 272,
     "contentMaxWidth": 980,
     "composerMaxWidth": 840,
     "heroHeight": 220
@@ -45,22 +47,22 @@
     "motionScale": 0.8
   },
   "chrome": {
-    "brand": true,
-    "status": true,
+    "brand": false,
+    "status": false,
     "quote": false,
     "particles": false,
     "orbit": false
   },
   "colors": {
-    "background": "#08121F",
-    "panel": "#0E1C2D",
-    "panelAlt": "#14283C",
-    "accent": "#62D6EA",
-    "accentAlt": "#A1EAF3",
-    "secondary": "#F48B74",
-    "highlight": "#C8F4F7",
-    "text": "#EFF7FA",
-    "muted": "#9AAFC0",
-    "line": "#315069"
+    "background": "#07111D",
+    "panel": "#0D1B2A",
+    "panelAlt": "#142638",
+    "accent": "#58C4D6",
+    "accentAlt": "#79D5E1",
+    "secondary": "#DF806E",
+    "highlight": "#A8E8EE",
+    "text": "#EDF6F8",
+    "muted": "#9DB0BE",
+    "line": "#29465B"
   }
 }

@@ -142,7 +142,7 @@ pub fn save(
     Ok(id)
 }
 
-/// Installs shipped themes once without overwriting user edits.
+/// Installs shipped themes, replacing any existing theme with the same ID.
 pub fn install_bundled_themes() -> Result<()> {
     install_bundled_themes_into(&paths::themes_root()?)
 }
@@ -150,9 +150,6 @@ pub fn install_bundled_themes() -> Result<()> {
 fn install_bundled_themes_into(themes_root: &Path) -> Result<()> {
     for theme in BUNDLED_THEMES {
         let root = themes_root.join(theme.id);
-        if root.exists() {
-            continue;
-        }
         fs::create_dir_all(&root)?;
         let mut value = validate_json(theme.json)?;
         value["id"] = Value::String(theme.id.into());
@@ -168,6 +165,8 @@ fn install_bundled_themes_into(themes_root: &Path) -> Result<()> {
         atomic_write(&root.join("background.png"), theme.background)?;
         if let Some(avatar) = theme.avatar {
             atomic_write(&root.join("avatar.png"), avatar)?;
+        } else if root.join("avatar.png").is_file() {
+            fs::remove_file(root.join("avatar.png"))?;
         }
     }
     Ok(())
@@ -411,7 +410,7 @@ mod tests {
     }
 
     #[test]
-    fn installs_all_bundled_themes_without_overwriting_edits() {
+    fn installs_all_bundled_themes_and_overwrites_matching_ids() {
         let root = std::env::temp_dir().join(format!(
             "codeface-bundled-{}-{}",
             std::process::id(),
@@ -452,10 +451,31 @@ mod tests {
 
         let theme_root = root.join(BUNDLED_THEMES[0].id);
         fs::write(theme_root.join("codeface.css"), "/* user edit */").expect("edit theme");
+        fs::write(theme_root.join("background.png"), b"user background").expect("edit background");
+        fs::write(theme_root.join("theme.json"), r#"{"name":"User edit"}"#).expect("edit manifest");
+
+        let custom_root = root.join("custom-theme-id");
+        fs::create_dir_all(&custom_root).expect("create custom theme");
+        fs::write(custom_root.join("codeface.css"), "/* custom copy */")
+            .expect("write custom theme");
+
         install_bundled_themes_into(&root).expect("second install");
         assert_eq!(
             fs::read_to_string(theme_root.join("codeface.css")).expect("read edit"),
-            "/* user edit */"
+            BUNDLED_THEMES[0].css
+        );
+        assert_eq!(
+            fs::read(theme_root.join("background.png")).expect("read background"),
+            BUNDLED_THEMES[0].background
+        );
+        let json: Value = serde_json::from_str(
+            &fs::read_to_string(theme_root.join("theme.json")).expect("read manifest"),
+        )
+        .expect("parse manifest");
+        assert_eq!(json["id"], BUNDLED_THEMES[0].id);
+        assert_eq!(
+            fs::read_to_string(custom_root.join("codeface.css")).expect("read custom theme"),
+            "/* custom copy */"
         );
         fs::remove_dir_all(root).expect("remove test root");
     }

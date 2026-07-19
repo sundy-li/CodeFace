@@ -1,0 +1,4 @@
+interface:
+  display_name: "CodeFace"
+  short_description: "Create, apply, verify, and restore Codex themes"
+  default_prompt: "Use $codeface to create or manage a safe local Codex desktop theme."

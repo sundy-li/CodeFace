@@ -196,7 +196,7 @@ html.codeface .codeface-home [data-feature="game-source"] button:hover {
 
 html.codeface .codeface-home [data-feature="game-source"] button:focus-visible,
 html.codeface .codeface-home .group\/home-suggestions button:focus-visible,
-html.codeface .codeface-home .group\/project-selector > button:focus-visible {
+html.codeface .codeface-home .codeface-project-selector > button:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--cf-green) 48%, transparent) !important;
   outline-offset: 3px !important;
 }
@@ -385,7 +385,7 @@ html.codeface .codeface-home .group\/home-suggestion-list-item > span:last-child
 }
 
 /* Treat the native project selector as a compact toolbar above the composer. */
-html.codeface .codeface-home div:has(> .horizontal-scroll-fade-mask .group\/project-selector) {
+html.codeface .codeface-home .codeface-project-bar {
   padding: 32px 14px 10px !important;
   margin-bottom: 8px !important;
   top: 0 !important;
@@ -399,7 +399,7 @@ html.codeface .codeface-home div:has(> .horizontal-scroll-fade-mask .group\/proj
   overflow: hidden !important;
 }
 
-html.codeface .codeface-home div:has(> .horizontal-scroll-fade-mask .group\/project-selector)::before {
+html.codeface .codeface-home .codeface-project-bar::before {
   left: 16px !important;
   top: 9px !important;
   color: var(--cf-muted) !important;
@@ -409,11 +409,11 @@ html.codeface .codeface-home div:has(> .horizontal-scroll-fade-mask .group\/proj
   letter-spacing: .06em !important;
 }
 
-html.codeface .codeface-home .group\/project-selector {
+html.codeface .codeface-home .codeface-project-selector {
   gap: 6px !important;
 }
 
-html.codeface .codeface-home .group\/project-selector > button {
+html.codeface .codeface-home .codeface-project-selector > button {
   min-height: 36px !important;
   padding-inline: 12px !important;
   border: 1px solid color-mix(in srgb, var(--cf-line) 75%, transparent) !important;
@@ -428,7 +428,7 @@ html.codeface .codeface-home .group\/project-selector > button {
     border-color 170ms var(--cf-template-ease) !important;
 }
 
-html.codeface .codeface-home .group\/project-selector > button:hover {
+html.codeface .codeface-home .codeface-project-selector > button:hover {
   border-color: color-mix(in srgb, var(--cf-green) 52%, var(--cf-line)) !important;
   background: color-mix(in srgb, var(--cf-panel) 76%, var(--cf-lime) 24%) !important;
 }
@@ -485,7 +485,7 @@ html.codeface .codeface-home .group\/project-selector > button:hover {
 @media (prefers-reduced-motion: reduce) {
   html.codeface .codeface-home [data-feature="game-source"] button,
   html.codeface .codeface-home .group\/home-suggestions button,
-  html.codeface .codeface-home .group\/project-selector > button {
+  html.codeface .codeface-home .codeface-project-selector > button {
     transition: none !important;
     transform: none !important;
   }
