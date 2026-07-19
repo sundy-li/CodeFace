@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.4.0 — 2026-07-19
+
+- Added post-apply runtime health reports for theme identity, critical controls, text contrast, and suggestion stability.
+- Added automatic rollback to the previous theme or native appearance when a health check fails.
+- Added an in-app CodexThemes market with search results, installability guidance, installation, and applied-theme updates.
+- Added market version checks and update actions for installed themes.
+- Added persistent backups before edits, market updates, deletion, and rollback, with user-facing rollback controls.
+- Added portable `.codex-theme` export for local and market themes.
+- Added CLI commands for market search, health checks, update checks, backup listing, rollback, export, and deletion.
+- Upgraded runtime state to schema 3 with stable theme IDs for verified rollback and update workflows.
+
 ## 1.3.0 — 2026-07-19
 
 - Added direct installation of compatible `.codex-theme` packages from CodexThemes by theme ID or localized detail-page URL.

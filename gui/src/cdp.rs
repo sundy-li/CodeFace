@@ -47,7 +47,30 @@ pub struct RuntimeState {
     pub injection_enabled: bool,
     pub codex_executable: String,
     pub theme_name: String,
+    #[serde(default)]
+    pub theme_id: String,
     pub version: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PageHealth {
+    pub target_id: String,
+    pub page: String,
+    pub theme_id: String,
+    pub critical_controls: u64,
+    pub hidden_controls: u64,
+    pub low_contrast_text: u64,
+    pub low_contrast_samples: Vec<Value>,
+    pub suggestion_rebuilds: u64,
+    pub healthy: bool,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct HealthReport {
+    pub healthy: bool,
+    pub expected_theme_id: String,
+    pub pages: Vec<PageHealth>,
+    pub issues: Vec<String>,
 }
 
 fn targets(port: u16) -> Result<Vec<Target>> {
@@ -304,6 +327,188 @@ pub fn verify(port: u16) -> Result<()> {
     }
 }
 
+pub fn health_check(port: u16, expected_theme_id: &str) -> Result<HealthReport> {
+    let expected = serde_json::to_string(expected_theme_id)?;
+    let expression = format!(
+        r#"new Promise((resolve) => {{
+          const expected = {expected};
+          const root = document.documentElement;
+          const visible = (node) => {{
+            if (!node) return false;
+            const rect = node.getBoundingClientRect();
+            const style = getComputedStyle(node);
+            return rect.width >= 2 && rect.height >= 2 && style.display !== "none" &&
+              style.visibility !== "hidden" && Number(style.opacity || 1) > 0.05;
+          }};
+          const controls = [
+            document.querySelector('aside.app-shell-left-panel'),
+            document.querySelector('main.main-surface'),
+            document.querySelector('header'),
+            document.querySelector('.composer-surface-chrome')
+          ].filter(Boolean);
+          const parse = (value) => {{
+            const match = String(value).match(/rgba?\(\s*([\d.]+)[, ]+\s*([\d.]+)[, ]+\s*([\d.]+)/i);
+            return match ? match.slice(1, 4).map(Number) : null;
+          }};
+          const luminance = (rgb) => {{
+            const values = rgb.map((value) => {{
+              const x = value / 255;
+              return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+            }});
+            return values[0] * 0.2126 + values[1] * 0.7152 + values[2] * 0.0722;
+          }};
+          const background = (node) => {{
+            for (let current = node; current; current = current.parentElement) {{
+              const style = getComputedStyle(current);
+              const value = style.backgroundColor;
+              if (value && value !== "transparent" && !value.endsWith(", 0)")) return parse(value);
+              // A gradient or artwork is the visible background. Sampling an
+              // opaque ancestor behind it would produce a false contrast result.
+              if (style.backgroundImage && style.backgroundImage !== "none") return null;
+            }}
+            return null;
+          }};
+          let lowContrast = 0;
+          const lowContrastSamples = [];
+          for (const node of [...document.querySelectorAll('button, a, input, textarea, h1, h2, h3, label')].slice(0, 120)) {{
+            if (!visible(node) || !(node.textContent?.trim() || node.value?.trim() || node.placeholder?.trim())) continue;
+            const foreground = parse(getComputedStyle(node).color);
+            const behind = background(node);
+            if (!foreground || !behind) continue;
+            const first = luminance(foreground), second = luminance(behind);
+            const ratio = (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05);
+            // This is a catastrophic-regression gate rather than a WCAG audit. The
+            // sampled background can include translucent artwork, so only flag text
+            // that is very likely unreadable.
+            if (ratio < 1.8) {{
+              lowContrast += 1;
+              if (lowContrastSamples.length < 12) lowContrastSamples.push({{
+                element: node.tagName.toLowerCase(),
+                text: String(node.textContent || node.value || node.placeholder || '').trim().slice(0, 80),
+                foreground: getComputedStyle(node).color,
+                background: getComputedStyle(node).backgroundColor,
+                sampledBackground: behind,
+                ratio: Math.round(ratio * 100) / 100
+              }});
+            }}
+          }}
+          let suggestionRebuilds = 0;
+          const suggestions = document.querySelector('.group\\/home-suggestions');
+          const observer = new MutationObserver((records) => {{
+            suggestionRebuilds += records.filter((record) => record.type === 'childList').length;
+          }});
+          setTimeout(() => {{
+            if (suggestions) observer.observe(suggestions, {{ childList: true, subtree: true }});
+            setTimeout(() => {{
+              observer.disconnect();
+              const themeId = root.dataset.codexthemesTheme ||
+                (root.classList.contains('codeface') ? expected : '');
+              const hidden = controls.filter((node) => !visible(node)).length;
+              const page = document.querySelector('main[data-codexthemes-page]')?.dataset.codexthemesPage ||
+                (document.querySelector('[data-thread-find-target="conversation"]') ? 'conversation' : 'unknown');
+              resolve({{
+                page,
+                themeId,
+                criticalControls: controls.length,
+                hiddenControls: hidden,
+                lowContrastText: lowContrast,
+                lowContrastSamples,
+                suggestionRebuilds,
+                healthy: themeId === expected && controls.length >= 2 && hidden === 0 &&
+                  lowContrast <= 4 && suggestionRebuilds === 0
+              }});
+            }}, 1800);
+          }}, 750);
+        }})"#
+    );
+    let mut pages = Vec::new();
+    for target in targets(port)?
+        .into_iter()
+        .filter(|target| target.url.starts_with("app://") || target.title.contains("Codex"))
+    {
+        let value = evaluate(&target, &expression)
+            .with_context(|| format!("failed to inspect target {}", target.id))?;
+        pages.push(PageHealth {
+            target_id: target.id,
+            page: value
+                .get("page")
+                .and_then(Value::as_str)
+                .unwrap_or("unknown")
+                .to_owned(),
+            theme_id: value
+                .get("themeId")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .to_owned(),
+            critical_controls: value
+                .get("criticalControls")
+                .and_then(Value::as_u64)
+                .unwrap_or_default(),
+            hidden_controls: value
+                .get("hiddenControls")
+                .and_then(Value::as_u64)
+                .unwrap_or_default(),
+            low_contrast_text: value
+                .get("lowContrastText")
+                .and_then(Value::as_u64)
+                .unwrap_or_default(),
+            low_contrast_samples: value
+                .get("lowContrastSamples")
+                .and_then(Value::as_array)
+                .cloned()
+                .unwrap_or_default(),
+            suggestion_rebuilds: value
+                .get("suggestionRebuilds")
+                .and_then(Value::as_u64)
+                .unwrap_or_default(),
+            healthy: value
+                .get("healthy")
+                .and_then(Value::as_bool)
+                .unwrap_or(false),
+        });
+    }
+    let mut issues = Vec::new();
+    for page in &pages {
+        if page.theme_id != expected_theme_id {
+            issues.push(format!(
+                "{} did not report the expected theme",
+                page.target_id
+            ));
+        }
+        if page.critical_controls < 2 {
+            issues.push(format!(
+                "{} exposes only {} critical controls",
+                page.target_id, page.critical_controls
+            ));
+        }
+        if page.hidden_controls > 0 {
+            issues.push(format!(
+                "{} has {} hidden critical controls",
+                page.target_id, page.hidden_controls
+            ));
+        }
+        if page.low_contrast_text > 4 {
+            issues.push(format!(
+                "{} has {} low-contrast text samples",
+                page.target_id, page.low_contrast_text
+            ));
+        }
+        if page.suggestion_rebuilds > 0 {
+            issues.push(format!(
+                "{} rebuilt suggestions {} times",
+                page.target_id, page.suggestion_rebuilds
+            ));
+        }
+    }
+    let healthy = !pages.is_empty() && pages.iter().all(|page| page.healthy);
+    Ok(HealthReport {
+        healthy,
+        expected_theme_id: expected_theme_id.to_owned(),
+        pages,
+        issues,
+    })
+}
+
 fn write_state(state: &RuntimeState) -> Result<()> {
     let path = paths::state_path()?;
     let temporary = path.with_extension(format!("tmp-{}", std::process::id()));
@@ -395,7 +600,15 @@ pub fn apply_active(theme_name: String, restart_existing: bool) -> Result<Runtim
             bail!("Codex did not open a loopback CDP port within 45 seconds");
         }
     }
-    inject_once(port, &paths::active_theme_root()?)?;
+    let active_root = paths::active_theme_root()?;
+    let active_manifest: Value =
+        serde_json::from_str(&fs::read_to_string(active_root.join("theme.json"))?)?;
+    let theme_id = active_manifest
+        .get("id")
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_owned();
+    inject_once(port, &active_root)?;
     verify(port)?;
     if let Some(state) = previous {
         stop_process(state.injector_pid);
@@ -409,13 +622,14 @@ pub fn apply_active(theme_name: String, restart_existing: bool) -> Result<Runtim
         .stderr(Stdio::null())
         .spawn()?;
     let state = RuntimeState {
-        schema_version: 2,
+        schema_version: 3,
         platform: std::env::consts::OS.into(),
         port,
         injector_pid: child.id(),
         injection_enabled: true,
         codex_executable: install.executable.to_string_lossy().into_owned(),
         theme_name,
+        theme_id,
         version: paths::VERSION.into(),
     };
     write_state(&state)?;
@@ -493,7 +707,7 @@ pub fn remove_live_skin() -> Result<()> {
         }
     }
     if let Some(mut state) = previous {
-        state.schema_version = 2;
+        state.schema_version = 3;
         state.injector_pid = 0;
         state.injection_enabled = false;
         write_state(&state)?;
@@ -540,6 +754,24 @@ mod tests {
         let after = theme_snapshot(&root).expect("updated snapshot");
         assert_ne!(before.fingerprint, after.fingerprint);
         fs::remove_dir_all(root).expect("remove theme root");
+    }
+
+    #[test]
+    fn runtime_state_accepts_schema_two_without_theme_id() {
+        let state: RuntimeState = serde_json::from_str(
+            r#"{
+                "schema_version":2,
+                "platform":"macos",
+                "port":9341,
+                "injector_pid":42,
+                "injection_enabled":true,
+                "codex_executable":"/Applications/Codex.app",
+                "theme_name":"Legacy Theme",
+                "version":"1.3.0"
+            }"#,
+        )
+        .expect("deserialize schema-two state");
+        assert!(state.theme_id.is_empty());
     }
 
     #[test]

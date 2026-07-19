@@ -30,6 +30,8 @@ CodeFace does not modify:
 - Market packages are limited to 30 MiB, must use schema version 1, and must match the requested theme ID.
 - Market artwork is decoded and normalized locally; unsupported or external CSS assets are rejected.
 - An existing local theme is updated from the market only when its recorded CodexThemes source matches the requested ID.
+- Theme switches are accepted only after a live-DOM health report; failed checks restore the previous theme or native appearance.
+- Persistent snapshots are limited to validated theme directories and bounded by the same 30 MiB theme size limit.
 
 ## Deletion
 

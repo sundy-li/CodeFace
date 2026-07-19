@@ -35,6 +35,10 @@ Security invariants:
 
 `PlatformBackend` contains only Codex discovery and lifecycle operations. Theme storage, image conversion, CDP, UI, settings, i18n, and packaging contracts are shared.
 
+`HealthReport` is the shared post-apply contract between CLI and GUI. It samples each live Codex renderer through the loopback CDP client and records page identity, theme identity, critical-control visibility, text contrast, and suggestion stability before a switch is committed.
+
+Theme history is stored under the CodeFace data root in `backups/<theme-id>/`; portable exports use `exports/<theme-id>.codex-theme`. Market discovery and package download remain separate operations so browsing never mutates the local library.
+
 ## Language selection
 
 `i18n.rs` stores `system`, `english`, or `simplified-chinese`. `system` resolves through the native system locale at runtime. Rendering reads the effective locale each frame, so manual changes apply immediately.

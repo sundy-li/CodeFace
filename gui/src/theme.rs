@@ -3,6 +3,7 @@ use anyhow::{Context, Result, bail};
 use base64::{Engine as _, engine::general_purpose::STANDARD};
 use chrono::Local;
 use image::{DynamicImage, Rgba, RgbaImage};
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{
     fs,
@@ -13,6 +14,39 @@ use std::{
 
 const CODEXTHEMES_BASE_URL: &str = "https://codexthemes.ai";
 const CODEXTHEMES_MAX_PACKAGE_SIZE: usize = 30 * 1024 * 1024;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct MarketTheme {
+    pub id: String,
+    pub name: String,
+    #[serde(default)]
+    pub description: String,
+    #[serde(default)]
+    pub author: String,
+    #[serde(default)]
+    pub mode: String,
+    #[serde(default)]
+    pub image: String,
+    pub url: String,
+    pub kind: String,
+    pub installable: bool,
+    #[serde(rename = "downloadUrl", default)]
+    pub download_url: String,
+    #[serde(default)]
+    pub verified: bool,
+}
+
+#[derive(Debug, Deserialize)]
+struct MarketResponse {
+    themes: Vec<MarketTheme>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct BackupInfo {
+    pub id: String,
+    pub path: PathBuf,
+    pub reason: String,
+}
 
 pub const DEFAULT_JSON: &str = include_str!("../../resources/theme-pack-template/theme.json");
 pub const DEFAULT_CSS: &str = include_str!("../../resources/theme-pack-template/codeface.css");
@@ -62,6 +96,116 @@ fn atomic_write(path: &Path, data: &[u8]) -> Result<()> {
     fs::write(&temporary, data)?;
     fs::rename(&temporary, path)?;
     Ok(())
+}
+
+fn copy_theme_directory(source: &Path, target: &Path) -> Result<()> {
+    fs::create_dir_all(target)?;
+    let mut total = 0_u64;
+    for entry in fs::read_dir(source)? {
+        let entry = entry?;
+        if !entry.file_type()?.is_file() {
+            continue;
+        }
+        let size = entry.metadata()?.len();
+        total = total.saturating_add(size);
+        if total > CODEXTHEMES_MAX_PACKAGE_SIZE as u64 {
+            bail!("theme snapshot cannot exceed 30 MiB");
+        }
+        fs::copy(entry.path(), target.join(entry.file_name()))?;
+    }
+    Ok(())
+}
+
+fn backup_theme_from_roots(
+    id: &str,
+    reason: &str,
+    themes_root: &Path,
+    backups_root: &Path,
+) -> Result<BackupInfo> {
+    codexthemes_id(id).or_else(|_| {
+        if id
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'_')
+        {
+            Ok(id.to_owned())
+        } else {
+            bail!("invalid theme ID")
+        }
+    })?;
+    let source = themes_root.join(id);
+    if !source.join("theme.json").is_file() {
+        bail!("theme does not exist: {id}");
+    }
+    let stamp = format!(
+        "{}-{:09}",
+        Local::now().format("%Y%m%d-%H%M%S"),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .subsec_nanos()
+    );
+    let reason_slug = safe_id(reason);
+    let path = backups_root.join(id).join(format!("{stamp}-{reason_slug}"));
+    copy_theme_directory(&source, &path)?;
+    atomic_write(&path.join("backup-reason.txt"), reason.as_bytes())?;
+    Ok(BackupInfo {
+        id: id.to_owned(),
+        path,
+        reason: reason.to_owned(),
+    })
+}
+
+pub fn backup_theme(id: &str, reason: &str) -> Result<BackupInfo> {
+    backup_theme_from_roots(id, reason, &paths::themes_root()?, &paths::backups_root()?)
+}
+
+fn list_backups_from_root(id: &str, backups_root: &Path) -> Result<Vec<BackupInfo>> {
+    let root = backups_root.join(id);
+    let mut backups = Vec::new();
+    for entry in fs::read_dir(root).into_iter().flatten().flatten() {
+        if !entry.file_type()?.is_dir() {
+            continue;
+        }
+        let path = entry.path();
+        let reason =
+            fs::read_to_string(path.join("backup-reason.txt")).unwrap_or_else(|_| "backup".into());
+        backups.push(BackupInfo {
+            id: id.to_owned(),
+            path,
+            reason,
+        });
+    }
+    backups.sort_by(|left, right| right.path.cmp(&left.path));
+    Ok(backups)
+}
+
+pub fn list_backups(id: &str) -> Result<Vec<BackupInfo>> {
+    list_backups_from_root(id, &paths::backups_root()?)
+}
+
+fn rollback_theme_from_roots(
+    id: &str,
+    themes_root: &Path,
+    backups_root: &Path,
+) -> Result<BackupInfo> {
+    let backup = list_backups_from_root(id, backups_root)?
+        .into_iter()
+        .next()
+        .context("no backup is available for this theme")?;
+    if themes_root.join(id).exists() {
+        backup_theme_from_roots(id, "before-rollback", themes_root, backups_root)?;
+        fs::remove_dir_all(themes_root.join(id))?;
+    }
+    copy_theme_directory(&backup.path, &themes_root.join(id))?;
+    let reason_file = themes_root.join(id).join("backup-reason.txt");
+    if reason_file.exists() {
+        fs::remove_file(reason_file)?;
+    }
+    Ok(backup)
+}
+
+pub fn rollback_theme(id: &str) -> Result<BackupInfo> {
+    rollback_theme_from_roots(id, &paths::themes_root()?, &paths::backups_root()?)
 }
 
 fn safe_id(value: &str) -> String {
@@ -135,6 +279,9 @@ pub fn save(
         .map(str::to_owned)
         .unwrap_or_else(|| safe_id(value.get("id").and_then(Value::as_str).unwrap_or(name)));
     let root = paths::themes_root()?.join(&id);
+    if root.join("theme.json").is_file() {
+        backup_theme(&id, "before-edit")?;
+    }
     fs::create_dir_all(&root)?;
     value["id"] = Value::String(id.clone());
     value["image"] = Value::String("background.png".into());
@@ -330,6 +477,14 @@ fn install_codexthemes_package_into(
         {
             bail!("theme {id} already exists and is not a CodexThemes installation");
         }
+        if themes_root == paths::themes_root()? {
+            backup_theme_from_roots(
+                id,
+                "before-market-update",
+                themes_root,
+                &paths::backups_root()?,
+            )?;
+        }
     }
     fs::create_dir_all(themes_root)?;
     let staging = themes_root.join(format!(".{id}.codexthemes-{}", std::process::id()));
@@ -406,8 +561,22 @@ fn install_codexthemes_package_into(
     Ok(id.to_owned())
 }
 
-pub fn install_from_codexthemes(input: &str) -> Result<String> {
-    let id = codexthemes_id(input)?;
+pub fn search_codexthemes(query: &str) -> Result<Vec<MarketTheme>> {
+    let response: MarketResponse = reqwest::blocking::Client::builder()
+        .timeout(std::time::Duration::from_secs(15))
+        .build()?
+        .get(format!("{CODEXTHEMES_BASE_URL}/api/themes"))
+        .query(&[("q", query.trim()), ("limit", "20")])
+        .send()
+        .context("failed to search CodexThemes")?
+        .error_for_status()
+        .context("CodexThemes search failed")?
+        .json()
+        .context("CodexThemes search response is invalid")?;
+    Ok(response.themes)
+}
+
+fn download_codexthemes_package(id: &str) -> Result<Vec<u8>> {
     let endpoint = format!("{CODEXTHEMES_BASE_URL}/api/themes/{id}/download");
     let response = reqwest::blocking::Client::builder()
         .timeout(std::time::Duration::from_secs(30))
@@ -447,7 +616,119 @@ pub fn install_from_codexthemes(input: &str) -> Result<String> {
     if bytes.len() > CODEXTHEMES_MAX_PACKAGE_SIZE {
         bail!("CodexThemes package cannot exceed 30 MiB");
     }
+    Ok(bytes)
+}
+
+fn package_version(bytes: &[u8]) -> Result<String> {
+    let package: Value = serde_json::from_slice(bytes).context("CodexThemes package is invalid")?;
+    Ok(package
+        .pointer("/manifest/version")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown")
+        .to_owned())
+}
+
+pub fn market_version(id: &str) -> Result<String> {
+    let id = codexthemes_id(id)?;
+    package_version(&download_codexthemes_package(&id)?)
+}
+
+pub fn installed_market_version(id: &str) -> Result<Option<String>> {
+    let manifest: Value = serde_json::from_str(&fs::read_to_string(
+        paths::themes_root()?.join(id).join("theme.json"),
+    )?)?;
+    Ok(manifest
+        .pointer("/codexthemes/version")
+        .and_then(Value::as_str)
+        .map(str::to_owned))
+}
+
+pub fn market_update_available(id: &str) -> Result<bool> {
+    let installed = installed_market_version(id)?.unwrap_or_default();
+    Ok(!installed.is_empty() && market_version(id)? != installed)
+}
+
+pub fn install_from_codexthemes(input: &str) -> Result<String> {
+    let id = codexthemes_id(input)?;
+    let bytes = download_codexthemes_package(&id)?;
     install_codexthemes_package_into(&bytes, &id, &paths::themes_root()?)
+}
+
+fn export_theme_from_roots(id: &str, themes_root: &Path, exports_root: &Path) -> Result<PathBuf> {
+    let root = themes_root.join(id);
+    let manifest: Value = serde_json::from_str(&fs::read_to_string(root.join("theme.json"))?)?;
+    let name = manifest
+        .get("name")
+        .and_then(Value::as_str)
+        .context("theme name is missing")?;
+    let image_name = manifest
+        .get("image")
+        .and_then(Value::as_str)
+        .unwrap_or("background.png");
+    let image_path = root.join(image_name);
+    let image = image::open(&image_path).context("failed to decode theme artwork")?;
+    let mut png = Vec::new();
+    image.write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png)?;
+    if png.len() > 16 * 1024 * 1024 {
+        bail!("exported artwork cannot exceed 16 MiB");
+    }
+    let css = fs::read_to_string(root.join("codeface.css"))?
+        .replace("var(--codeface-art)", "url(\"./assets/artwork.png\")");
+    let colors = manifest.get("colors");
+    let color = |key: &str, fallback: &str| {
+        colors
+            .and_then(|value| value.get(key))
+            .and_then(Value::as_str)
+            .unwrap_or(fallback)
+            .to_owned()
+    };
+    let package = serde_json::json!({
+        "format": "codex-theme",
+        "schemaVersion": 1,
+        "manifest": {
+            "schemaVersion": 1,
+            "id": id,
+            "displayName": name,
+            "description": manifest.get("description").cloned().unwrap_or(Value::String("Exported from CodeFace".into())),
+            "version": manifest.pointer("/codexthemes/version").cloned().unwrap_or(Value::String("1.0.0".into())),
+            "mode": "dark",
+            "css": "theme.css",
+            "art": "assets/artwork.png",
+            "design": {
+                "backgroundScope": manifest.pointer("/codexthemes/backgroundScope").cloned().unwrap_or(Value::String("home".into())),
+                "artFocalPoint": manifest.pointer("/layout/backgroundPosition").cloned().unwrap_or(Value::String("center center".into()))
+            },
+            "palette": {
+                "canvas": color("background", "#111111"),
+                "surface": color("panel", "#191919"),
+                "raised": color("panelAlt", "#242424"),
+                "text": color("text", "#F5F5F5"),
+                "muted": color("muted", "#A0A0A0"),
+                "accent": color("accent", "#7C3AED"),
+                "border": color("line", "#383838")
+            },
+            "platforms": ["macos", "windows"]
+        },
+        "css": css,
+        "readme": format!("# {name}\n\nExported from CodeFace.\n"),
+        "art": {
+            "filename": "artwork.png",
+            "mimeType": "image/png",
+            "base64": STANDARD.encode(png)
+        }
+    });
+    fs::create_dir_all(exports_root)?;
+    let path = exports_root.join(format!("{id}.codex-theme"));
+    let bytes = serde_json::to_vec_pretty(&package)?;
+    if bytes.len() > CODEXTHEMES_MAX_PACKAGE_SIZE {
+        bail!("export package cannot exceed 30 MiB");
+    }
+    atomic_write(&path, &bytes)?;
+    Ok(path)
+}
+
+pub fn export_theme(id: &str) -> Result<PathBuf> {
+    export_theme_from_roots(id, &paths::themes_root()?, &paths::exports_root()?)
 }
 
 pub fn import_directory(source: &Path) -> Result<String> {
@@ -542,6 +823,10 @@ fn delete_from_root(root: &Path, id: &str) -> Result<()> {
 }
 
 pub fn delete(id: &str) -> Result<()> {
+    if id == "__codeface-system-theme__" {
+        bail!("The system theme cannot be deleted");
+    }
+    backup_theme(id, "before-delete")?;
     delete_from_root(&paths::themes_root()?, id)
 }
 
@@ -614,6 +899,114 @@ mod tests {
         );
         assert!(codexthemes_id("https://example.com/themes/portal-panic").is_err());
         assert!(codexthemes_id("Portal Panic").is_err());
+    }
+
+    #[test]
+    fn market_results_deserialize_and_preserve_installability() {
+        let response: MarketResponse = serde_json::from_value(serde_json::json!({
+            "themes": [{
+                "id": "coast",
+                "name": "Coast",
+                "description": "Sea glass",
+                "author": "Designer",
+                "mode": "dark",
+                "image": "https://cdn.codexthemes.ai/coast.png",
+                "url": "https://codexthemes.ai/themes/coast",
+                "kind": "theme",
+                "installable": true,
+                "downloadUrl": "https://codexthemes.ai/api/themes/coast/download",
+                "verified": true
+            }]
+        }))
+        .expect("parse market response");
+        assert_eq!(response.themes.len(), 1);
+        assert!(response.themes[0].installable);
+        assert_eq!(
+            response.themes[0].download_url,
+            "https://codexthemes.ai/api/themes/coast/download"
+        );
+    }
+
+    #[test]
+    fn backups_restore_previous_theme_files() {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!("codeface-history-{nonce}"));
+        let themes = root.join("themes");
+        let backups = root.join("backups");
+        let theme_root = themes.join("history-test");
+        fs::create_dir_all(&theme_root).expect("create theme");
+        fs::write(theme_root.join("theme.json"), r#"{"name":"Before"}"#).expect("write manifest");
+        fs::write(theme_root.join("codeface.css"), "before").expect("write CSS");
+        backup_theme_from_roots("history-test", "before-edit", &themes, &backups)
+            .expect("create backup");
+        fs::write(theme_root.join("codeface.css"), "after").expect("update CSS");
+        rollback_theme_from_roots("history-test", &themes, &backups).expect("restore backup");
+        assert_eq!(
+            fs::read_to_string(theme_root.join("codeface.css")).expect("read restored CSS"),
+            "before"
+        );
+        assert_eq!(
+            list_backups_from_root("history-test", &backups)
+                .expect("list backups")
+                .len(),
+            2,
+            "rollback should preserve the replaced version too"
+        );
+        fs::remove_dir_all(root).expect("remove history root");
+    }
+
+    #[test]
+    fn export_package_contains_manifest_css_and_png_artwork() {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!("codeface-export-{nonce}"));
+        let themes = root.join("themes");
+        let exports = root.join("exports");
+        let theme_root = themes.join("export-test");
+        fs::create_dir_all(&theme_root).expect("create theme");
+        fs::write(
+            theme_root.join("theme.json"),
+            r##"{
+                "id":"export-test",
+                "name":"Export Test",
+                "image":"background.png",
+                "colors":{"background":"#111111","text":"#f5f5f5"},
+                "codexthemes":{"version":"2.3.4"}
+            }"##,
+        )
+        .expect("write manifest");
+        fs::write(
+            theme_root.join("codeface.css"),
+            ".hero { background-image: var(--codeface-art); }",
+        )
+        .expect("write CSS");
+        DynamicImage::ImageRgba8(RgbaImage::from_pixel(2, 2, Rgba([1, 2, 3, 255])))
+            .save(theme_root.join("background.png"))
+            .expect("write artwork");
+
+        let path = export_theme_from_roots("export-test", &themes, &exports)
+            .expect("export theme package");
+        let package: Value =
+            serde_json::from_str(&fs::read_to_string(path).expect("read exported theme package"))
+                .expect("parse exported theme package");
+        assert_eq!(package["format"], "codex-theme");
+        assert_eq!(package["schemaVersion"], 1);
+        assert_eq!(package["manifest"]["id"], "export-test");
+        assert_eq!(package["manifest"]["version"], "2.3.4");
+        assert!(
+            package["css"]
+                .as_str()
+                .is_some_and(|css| css.contains("assets/artwork.png"))
+        );
+        let artwork = package["art"]["base64"].as_str().expect("encoded artwork");
+        let decoded = STANDARD.decode(artwork).expect("decode artwork");
+        assert_eq!(&decoded[..8], b"\x89PNG\r\n\x1a\n");
+        fs::remove_dir_all(root).expect("remove export root");
     }
 
     #[test]

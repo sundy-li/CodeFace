@@ -21,8 +21,8 @@ Use CodeFace as the sole theme runtime. Never modify the official Codex app,
 
 - **Create or redesign:** derive a concise design contract from the user's image or
   brief, create a theme in the CodeFace data root, then validate and preview it.
-- **Import:** use the CodeFace UI import action or `--import-theme <directory>` for a
-  user-provided CodeFace theme pack.
+- **Import or market install:** use the CodeFace add-theme menu, `--import-theme
+  <directory>`, or `--search-codexthemes` followed by `--install-codexthemes <id>`.
 - **Apply or switch:** use `--apply-theme <id>`, preserve the current Codex session,
   and hot-apply over loopback CDP whenever it is already available. Ask before
   restarting Codex.
@@ -82,12 +82,13 @@ Ask before changing live Codex state unless the user explicitly requested applic
 Prefer hot application; never restart merely to refresh a theme. After applying, run:
 
 ```bash
-codeface --verify 9341
+codeface --health-check <theme-id> 9341
 ```
 
-Use the configured port if it differs. Report success only after the endpoint and
-CodeFace marker are both verified. Always tell the user that the native appearance can
-be restored with:
+`--apply-theme` performs this health gate automatically and rolls back failures. Use
+the configured port if it differs. Report success only when the health report confirms
+the expected theme, visible controls, readable text, and stable suggestions. Always
+tell the user that the native appearance can be restored with:
 
 ```bash
 codeface --restore

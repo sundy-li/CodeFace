@@ -30,6 +30,8 @@ Release builds are currently not notarized or code-signed with a commercial cert
 - Import theme packs and manage them alongside built-in and locally created themes
 - Install compatible `.codex-theme` packages directly from [CodexThemes](https://codexthemes.ai/) by theme ID or detail-page URL
 - Preserve market theme styling with incremental DOM compatibility, stable suggestions, and artwork-aware content positioning
+- Search the market in CodeFace, check updates, back up and roll back themes, and export portable packages
+- Verify applied themes against the live Codex DOM and automatically roll back unhealthy results
 - Edit `theme.json` and `codeface.css` directly, with CSS syntax highlighting
 
 ### Customize themes with an LLM
@@ -152,6 +154,12 @@ codeface --apply-active
 codeface --apply-theme cyberpunk
 codeface --import-theme /path/to/theme-directory
 codeface --install-codexthemes portal-panic
+codeface --search-codexthemes coast
+codeface --check-theme-update portal-panic
+codeface --health-check portal-panic 9341
+codeface --list-theme-backups portal-panic
+codeface --rollback-theme portal-panic
+codeface --export-theme portal-panic
 codeface --verify 9341
 codeface --restore
 codeface --print-data-root

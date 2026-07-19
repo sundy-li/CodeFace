@@ -17,9 +17,11 @@ with its debugging port. Ask before closing or restarting the app.
 
 ## Verify
 
-Run `codeface --verify <port>` after application. A successful operation requires both a
-reachable loopback endpoint and the expected CodeFace DOM marker. A toast, saved state
-file, running daemon, or newly written CSS is insufficient proof by itself.
+Run `codeface --health-check <theme-id> <port>` after application. A successful
+operation requires a reachable loopback endpoint, the expected live theme ID, visible
+critical controls, readable sampled text, and stable suggestions. `--apply-theme`
+performs this check automatically and rolls back an unhealthy result. A toast, saved
+state file, running daemon, or newly written CSS is insufficient proof by itself.
 
 When verification fails, inspect in this order:
 
@@ -40,3 +42,9 @@ native state instead of restarting by default.
 Use the CodeFace UI import action for portable packs, or import an already extracted
 directory with `codeface --import-theme <directory>`. Never extract untrusted archives
 with unrestricted paths; rely on CodeFace's validated, bounded, atomic storage path.
+
+Search the market with `codeface --search-codexthemes <query>`, install with
+`--install-codexthemes <id-or-url>`, and check versions with
+`--check-theme-update <id>`. CodeFace snapshots an existing market copy before update.
+Use `--list-theme-backups <id>` and `--rollback-theme <id>` for history, and
+`--export-theme <id>` to create a portable `.codex-theme` package.

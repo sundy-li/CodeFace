@@ -4,7 +4,7 @@ mod paths;
 mod platform;
 mod theme;
 
-use anyhow::{Result, anyhow};
+use anyhow::{Result, anyhow, bail};
 use gpui::{
     AnyElement, App, Application, AssetSource, Bounds, ClipboardItem, Context, ObjectFit,
     SharedString, TitlebarOptions, Window, WindowBounds, WindowOptions, div, img,
@@ -62,6 +62,7 @@ struct ThemeSummary {
     description: String,
     image: PathBuf,
     is_system: bool,
+    is_market: bool,
     background: u32,
     panel: u32,
     panel_alt: u32,
@@ -138,12 +139,92 @@ struct CodeFaceApp {
     pending_delete: Option<String>,
     codexthemes_open: bool,
     codexthemes_error: Option<SharedString>,
+    market_results: Vec<theme::MarketTheme>,
     editing_source: bool,
     editing_id: Option<String>,
     draft_image: Option<PathBuf>,
     theme_json_editor: gpui::Entity<InputState>,
     css_editor: gpui::Entity<InputState>,
     codexthemes_input: gpui::Entity<InputState>,
+}
+
+fn apply_theme_checked(
+    id: &str,
+    restart_existing: bool,
+) -> Result<(cdp::RuntimeState, cdp::HealthReport)> {
+    let previous = fs::read_to_string(paths::state_path()?)
+        .ok()
+        .and_then(|text| serde_json::from_str::<cdp::RuntimeState>(&text).ok());
+    let active = theme::activate(id)?;
+    let manifest: Value = serde_json::from_str(&fs::read_to_string(active.join("theme.json"))?)?;
+    let name = manifest
+        .get("name")
+        .and_then(Value::as_str)
+        .unwrap_or(id)
+        .to_owned();
+    let state = cdp::apply_active(name, restart_existing)?;
+    let report = cdp::health_check(state.port, id)?;
+    if report.healthy {
+        return Ok((state, report));
+    }
+
+    let previous_id = previous
+        .as_ref()
+        .map(|state| state.theme_id.as_str())
+        .filter(|previous_id| !previous_id.is_empty())
+        .map(str::to_owned);
+    let rollback_id = if previous_id.as_deref() == Some(id) {
+        theme::rollback_theme(id).ok().map(|_| id.to_owned())
+    } else {
+        previous_id
+    };
+    if let Some(previous_id) = rollback_id {
+        let previous_active = theme::activate(&previous_id)?;
+        let previous_manifest: Value =
+            serde_json::from_str(&fs::read_to_string(previous_active.join("theme.json"))?)?;
+        let previous_name = previous_manifest
+            .get("name")
+            .and_then(Value::as_str)
+            .unwrap_or(&previous_id)
+            .to_owned();
+        cdp::apply_active(previous_name, false)?;
+    } else {
+        cdp::restore_native()?;
+    }
+    bail!(
+        "theme health check failed and was rolled back: {}\n{}",
+        if report.issues.is_empty() {
+            "unknown runtime failure".to_owned()
+        } else {
+            report.issues.join("; ")
+        },
+        serde_json::to_string_pretty(&report)?
+    )
+}
+
+fn install_codexthemes_checked(input: &str) -> Result<String> {
+    let applied_id = fs::read_to_string(paths::state_path()?)
+        .ok()
+        .and_then(|text| serde_json::from_str::<cdp::RuntimeState>(&text).ok())
+        .filter(|state| state.injection_enabled)
+        .map(|state| state.theme_id);
+    let id = theme::install_from_codexthemes(input)?;
+    if applied_id.as_deref() == Some(&id) {
+        apply_theme_checked(&id, false)?;
+    }
+    Ok(id)
+}
+
+fn rollback_theme_checked(id: &str) -> Result<theme::BackupInfo> {
+    let is_applied = fs::read_to_string(paths::state_path()?)
+        .ok()
+        .and_then(|text| serde_json::from_str::<cdp::RuntimeState>(&text).ok())
+        .is_some_and(|state| state.injection_enabled && state.theme_id == id);
+    let backup = theme::rollback_theme(id)?;
+    if is_applied {
+        apply_theme_checked(id, false)?;
+    }
+    Ok(backup)
 }
 
 impl CodeFaceApp {
@@ -183,6 +264,7 @@ impl CodeFaceApp {
             pending_delete: None,
             codexthemes_open: false,
             codexthemes_error: None,
+            market_results: Vec::new(),
             editing_source: false,
             editing_id: None,
             draft_image: None,
@@ -346,6 +428,7 @@ impl CodeFaceApp {
                 .and_then(|chrome| chrome.get("brand"))
                 .and_then(Value::as_bool)
                 .unwrap_or(false);
+            let is_market = value.get("codexthemes").is_some();
             let avatar = dir.join("avatar.png");
             self.themes.push(ThemeSummary {
                 id,
@@ -353,6 +436,7 @@ impl CodeFaceApp {
                 description,
                 image,
                 is_system: false,
+                is_market,
                 background: Self::preview_color(colors.and_then(|v| v.get("background")), 0xFFFFFF),
                 panel: Self::preview_color(colors.and_then(|v| v.get("panel")), 0xFFFFFF),
                 panel_alt: Self::preview_color(colors.and_then(|v| v.get("panelAlt")), 0xF3F3F4),
@@ -393,6 +477,7 @@ impl CodeFaceApp {
                 description: t(self.locale(), "system_theme_badge").into(),
                 image: PathBuf::new(),
                 is_system: true,
+                is_market: false,
                 background: 0xFFFFFF,
                 panel: 0xF7F7F8,
                 panel_alt: 0xECECEE,
@@ -531,17 +616,7 @@ impl CodeFaceApp {
             move || {
                 let id = theme::save(&json, &css, image.as_deref(), existing_id.as_deref())?;
                 if apply {
-                    let active = theme::activate(&id)?;
-                    let value: Value =
-                        serde_json::from_str(&fs::read_to_string(active.join("theme.json"))?)?;
-                    cdp::apply_active(
-                        value
-                            .get("name")
-                            .and_then(Value::as_str)
-                            .unwrap_or(&id)
-                            .to_owned(),
-                        false,
-                    )?;
+                    apply_theme_checked(&id, false)?;
                 }
                 Ok(id)
             },
@@ -591,11 +666,15 @@ impl CodeFaceApp {
 
     fn begin_install_codexthemes(&mut self, cx: &mut Context<Self>) {
         let input = self.codexthemes_input.read(cx).value().to_string();
+        self.begin_install_codexthemes_value(input, cx);
+    }
+
+    fn begin_install_codexthemes_value(&mut self, input: String, cx: &mut Context<Self>) {
         let locale = self.locale();
         self.codexthemes_error = None;
         self.run_operation_async(
             t(locale, "install_codexthemes"),
-            move || theme::install_from_codexthemes(&input),
+            move || install_codexthemes_checked(&input),
             move |app, result| match result {
                 Ok(id) => {
                     app.reload();
@@ -607,6 +686,91 @@ impl CodeFaceApp {
                     let message = Self::error_message(app.locale(), &error);
                     app.status = message.clone();
                     app.codexthemes_error = Some(message);
+                }
+            },
+            cx,
+        );
+    }
+
+    fn begin_search_codexthemes(&mut self, cx: &mut Context<Self>) {
+        let query = self.codexthemes_input.read(cx).value().to_string();
+        let locale = self.locale();
+        self.codexthemes_error = None;
+        self.run_operation_async(
+            t(locale, "search_codexthemes"),
+            move || theme::search_codexthemes(&query),
+            |app, result| match result {
+                Ok(results) => {
+                    app.market_results = results;
+                    app.status = t(app.locale(), "market_results_loaded").into();
+                }
+                Err(error) => {
+                    let message = Self::error_message(app.locale(), &error);
+                    app.status = message.clone();
+                    app.codexthemes_error = Some(message);
+                }
+            },
+            cx,
+        );
+    }
+
+    fn begin_check_theme_update(&mut self, cx: &mut Context<Self>) {
+        let id = match self.selected_id() {
+            Ok(id) if id != SYSTEM_THEME_ID => id,
+            _ => return,
+        };
+        let locale = self.locale();
+        self.run_operation_async(
+            t(locale, "check_updates"),
+            move || theme::market_update_available(&id),
+            |app, result| {
+                app.status = match result {
+                    Ok(true) => t(app.locale(), "update_available").into(),
+                    Ok(false) => t(app.locale(), "up_to_date").into(),
+                    Err(error) => Self::error_message(app.locale(), &error),
+                }
+            },
+            cx,
+        );
+    }
+
+    fn begin_rollback_theme(&mut self, cx: &mut Context<Self>) {
+        let id = match self.selected_id() {
+            Ok(id) if id != SYSTEM_THEME_ID => id,
+            _ => return,
+        };
+        let selected = id.clone();
+        let locale = self.locale();
+        self.run_operation_async(
+            t(locale, "rollback_theme"),
+            move || rollback_theme_checked(&id),
+            move |app, result| match result {
+                Ok(_) => {
+                    app.reload();
+                    app.selected = Some(selected);
+                    app.status = t(app.locale(), "theme_rolled_back").into();
+                }
+                Err(error) => app.status = Self::error_message(app.locale(), &error),
+            },
+            cx,
+        );
+    }
+
+    fn begin_export_theme(&mut self, cx: &mut Context<Self>) {
+        let id = match self.selected_id() {
+            Ok(id) if id != SYSTEM_THEME_ID => id,
+            _ => return,
+        };
+        let locale = self.locale();
+        self.run_operation_async(
+            t(locale, "export_theme"),
+            move || theme::export_theme(&id),
+            |app, result| {
+                app.status = match result {
+                    Ok(path) => {
+                        format!("{}: {}", t(app.locale(), "theme_exported"), path.display()).into()
+                    }
+                    Err(error) => Self::error_message(app.locale(), &error),
                 }
             },
             cx,
@@ -649,19 +813,7 @@ impl CodeFaceApp {
         let applied_id = id.clone();
         self.run_operation_async(
             t(locale, "apply_theme"),
-            move || {
-                let active = theme::activate(&id)?;
-                let value: Value =
-                    serde_json::from_str(&fs::read_to_string(active.join("theme.json"))?)?;
-                cdp::apply_active(
-                    value
-                        .get("name")
-                        .and_then(Value::as_str)
-                        .unwrap_or(&id)
-                        .to_owned(),
-                    false,
-                )
-            },
+            move || apply_theme_checked(&id, false).map(|(state, _)| state),
             move |app, result| match result {
                 Ok(state) => {
                     app.applied = Some(applied_id.clone());
@@ -788,8 +940,16 @@ impl CodeFaceApp {
             cx.notify();
             return;
         }
-        match theme::delete(&id) {
+        let result = if self.applied.as_deref() == Some(&id) {
+            cdp::restore_native().and_then(|()| theme::delete(&id))
+        } else {
+            theme::delete(&id)
+        };
+        match result {
             Ok(()) => {
+                if self.applied.as_deref() == Some(&id) {
+                    self.applied = Some(SYSTEM_THEME_ID.to_owned());
+                }
                 if self.selected.as_deref() == Some(&id) {
                     self.selected = None;
                 }
@@ -1372,6 +1532,10 @@ impl Render for CodeFaceApp {
             .iter()
             .find(|theme| selected.as_ref() == Some(&theme.id))
             .cloned();
+        let selected_is_market = selected_theme.as_ref().is_some_and(|theme| theme.is_market);
+        let selected_is_custom = selected_theme
+            .as_ref()
+            .is_some_and(|theme| !theme.is_system);
         let selected_name = selected_theme
             .as_ref()
             .map(|theme| theme.name.clone())
@@ -1864,8 +2028,42 @@ impl Render for CodeFaceApp {
                             div()
                                 .flex()
                                 .items_center()
-                                .gap_3()
+                                .gap_2()
                                 .child(selected_swatches)
+                                .when(selected_is_market, |actions| {
+                                    actions
+                                        .child(button(
+                                            cx,
+                                            t(locale, "check_updates"),
+                                            false,
+                                            |app, _, cx| app.begin_check_theme_update(cx),
+                                        ))
+                                        .child(button(
+                                            cx,
+                                            t(locale, "update_theme"),
+                                            false,
+                                            |app, _, cx| {
+                                                if let Ok(id) = app.selected_id() {
+                                                    app.begin_install_codexthemes_value(id, cx);
+                                                }
+                                            },
+                                        ))
+                                })
+                                .when(selected_is_custom, |actions| {
+                                    actions
+                                        .child(button(
+                                            cx,
+                                            t(locale, "rollback_theme"),
+                                            false,
+                                            |app, _, cx| app.begin_rollback_theme(cx),
+                                        ))
+                                        .child(button(
+                                            cx,
+                                            t(locale, "export_theme"),
+                                            false,
+                                            |app, _, cx| app.begin_export_theme(cx),
+                                        ))
+                                })
                                 .child(
                                     div()
                                         .px_3()
@@ -2138,6 +2336,7 @@ impl Render for CodeFaceApp {
                                 app.add_theme_menu_open = false;
                                 app.codexthemes_open = true;
                                 app.codexthemes_error = None;
+                                app.market_results.clear();
                                 app.pending_delete = None;
                                 cx.notify();
                             },
@@ -2285,9 +2484,20 @@ impl Render for CodeFaceApp {
                                 .child(
                                     div()
                                         .h(px(42.))
-                                        .rounded_lg()
-                                        .overflow_hidden()
-                                        .child(Input::new(&self.codexthemes_input).h_full()),
+                                        .flex()
+                                        .gap_2()
+                                        .child(
+                                            div().flex_1().rounded_lg().overflow_hidden().child(
+                                                Input::new(&self.codexthemes_input).h_full(),
+                                            ),
+                                        )
+                                        .child(button_with_id(
+                                            cx,
+                                            "search-codexthemes".into(),
+                                            t(locale, "search"),
+                                            false,
+                                            |app, _, cx| app.begin_search_codexthemes(cx),
+                                        )),
                                 )
                                 .children(self.codexthemes_error.clone().map(|message| {
                                     div()
@@ -2297,6 +2507,74 @@ impl Render for CodeFaceApp {
                                         .text_sm()
                                         .text_color(rgb(0xFECACA))
                                         .child(message)
+                                }))
+                                .children((!self.market_results.is_empty()).then(|| {
+                                    div()
+                                        .id("codexthemes-results")
+                                        .max_h(px(300.))
+                                        .overflow_y_scroll()
+                                        .flex()
+                                        .flex_col()
+                                        .gap_2()
+                                        .children(self.market_results.clone().into_iter().map(
+                                            |market_theme| {
+                                                let id = market_theme.id.clone();
+                                                let installable = market_theme.installable;
+                                                div()
+                                                    .p_3()
+                                                    .rounded_lg()
+                                                    .border_1()
+                                                    .border_color(rgb(palette.border))
+                                                    .bg(rgb(palette.surface_hover))
+                                                    .flex()
+                                                    .items_center()
+                                                    .justify_between()
+                                                    .gap_3()
+                                                    .child(
+                                                        div()
+                                                            .min_w_0()
+                                                            .flex()
+                                                            .flex_col()
+                                                            .gap_1()
+                                                            .child(
+                                                                div()
+                                                                    .font_weight(
+                                                                        gpui::FontWeight::SEMIBOLD,
+                                                                    )
+                                                                    .child(market_theme.name),
+                                                            )
+                                                            .child(
+                                                                div()
+                                                                    .text_xs()
+                                                                    .text_color(rgb(palette.muted))
+                                                                    .line_clamp(2)
+                                                                    .child(format!(
+                                                                        "{} · {}",
+                                                                        market_theme.author,
+                                                                        market_theme.description
+                                                                    )),
+                                                            ),
+                                                    )
+                                                    .child(button_with_id(
+                                                        cx,
+                                                        format!("install-market-{id}").into(),
+                                                        if installable {
+                                                            t(locale, "install")
+                                                        } else {
+                                                            t(locale, "not_installable")
+                                                        },
+                                                        installable,
+                                                        move |app, _, cx| {
+                                                            if installable {
+                                                                app.begin_install_codexthemes_value(
+                                                                    id.clone(),
+                                                                    cx,
+                                                                );
+                                                            }
+                                                        },
+                                                    ))
+                                            },
+                                        ))
                                 }))
                                 .child(
                                     div()
@@ -2354,12 +2632,57 @@ fn main() {
     }
     if let Some(command) = arguments.get(1).map(String::as_str) {
         let result: Option<Result<String>> = match command {
+            "--search-codexthemes" => Some((|| {
+                let query = arguments.get(2).map(String::as_str).unwrap_or_default();
+                Ok(serde_json::to_string_pretty(&theme::search_codexthemes(
+                    query,
+                )?)?)
+            })()),
             "--install-codexthemes" => Some((|| {
                 let source = arguments
                     .get(2)
                     .ok_or_else(|| anyhow!("Missing CodexThemes theme ID or URL"))?;
-                theme::install_from_codexthemes(source)
+                install_codexthemes_checked(source)
                     .map(|id| format!("Installed CodexThemes theme: {id}"))
+            })()),
+            "--check-theme-update" => Some((|| {
+                let id = arguments
+                    .get(2)
+                    .ok_or_else(|| anyhow!("Missing theme ID"))?;
+                Ok(serde_json::to_string_pretty(&serde_json::json!({
+                    "id": id,
+                    "installedVersion": theme::installed_market_version(id)?,
+                    "latestVersion": theme::market_version(id)?,
+                    "updateAvailable": theme::market_update_available(id)?
+                }))?)
+            })()),
+            "--list-theme-backups" => Some((|| {
+                let id = arguments
+                    .get(2)
+                    .ok_or_else(|| anyhow!("Missing theme ID"))?;
+                Ok(serde_json::to_string_pretty(&theme::list_backups(id)?)?)
+            })()),
+            "--rollback-theme" => Some((|| {
+                let id = arguments
+                    .get(2)
+                    .ok_or_else(|| anyhow!("Missing theme ID"))?;
+                let backup = rollback_theme_checked(id)?;
+                Ok(format!(
+                    "Restored theme {id} from {}",
+                    backup.path.display()
+                ))
+            })()),
+            "--export-theme" => Some((|| {
+                let id = arguments
+                    .get(2)
+                    .ok_or_else(|| anyhow!("Missing theme ID"))?;
+                theme::export_theme(id).map(|path| format!("Exported theme: {}", path.display()))
+            })()),
+            "--delete-theme" => Some((|| {
+                let id = arguments
+                    .get(2)
+                    .ok_or_else(|| anyhow!("Missing theme ID"))?;
+                theme::delete(id).map(|()| format!("Deleted theme: {id}"))
             })()),
             "--import-theme" => Some((|| {
                 let source = arguments
@@ -2372,16 +2695,11 @@ fn main() {
                 let id = arguments
                     .get(2)
                     .ok_or_else(|| anyhow!("Missing theme ID"))?;
-                let active = theme::activate(id)?;
-                let value: Value =
-                    serde_json::from_str(&fs::read_to_string(active.join("theme.json"))?)?;
-                let name = value
-                    .get("name")
-                    .and_then(Value::as_str)
-                    .unwrap_or(id)
-                    .to_owned();
-                let state = cdp::apply_active(name, false)?;
-                Ok(serde_json::to_string_pretty(&state)?)
+                let (state, health) = apply_theme_checked(id, false)?;
+                Ok(serde_json::to_string_pretty(&serde_json::json!({
+                    "state": state,
+                    "health": health
+                }))?)
             })()),
             "--apply-active" => Some((|| {
                 let active = paths::active_theme_root()?;
@@ -2407,6 +2725,21 @@ fn main() {
                     t(cli_locale, "verify_ok"),
                     paths::VERSION
                 ))
+            })()),
+            "--health-check" => Some((|| {
+                let id = arguments
+                    .get(2)
+                    .ok_or_else(|| anyhow!("Missing expected theme ID"))?;
+                let port = arguments
+                    .get(3)
+                    .map(String::as_str)
+                    .unwrap_or("9341")
+                    .parse::<u16>()?;
+                let report = cdp::health_check(port, id)?;
+                if !report.healthy {
+                    bail!("{}", serde_json::to_string_pretty(&report)?);
+                }
+                Ok(serde_json::to_string_pretty(&report)?)
             })()),
             "--restore" => Some(cdp::remove_live_skin().map(|()| t(cli_locale, "restored").into())),
             "--print-data-root" => Some(paths::state_root().map(|path| path.display().to_string())),
