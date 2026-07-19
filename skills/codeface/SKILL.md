@@ -46,6 +46,36 @@ Use CodeFace as the sole theme runtime. Never modify the official Codex app,
 6. Preview before applying. State which theme will be changed and whether a Codex
    restart would be needed.
 
+## Refine a theme
+
+1. Inspect `theme.json`, `codeface.css`, every local image asset, and the current
+   rendered result before editing. Treat screenshots and CDP-computed geometry as
+   stronger evidence than configuration values or a success toast.
+2. Build one continuous home composition. Let the viewport own the background image
+   or gradient; place the sidebar over it as a translucent material with a soft
+   right-side fade. Do not render separate sidebar and canvas images or leave a seam.
+3. Keep home, conversation, and settings routes distinct. Use the hero image on the
+   home route; use coordinated solid or low-contrast surfaces for dense reading,
+   diffs, terminal output, menus, and light-shell settings.
+4. Preserve native Codex geometry and controls. Keep the title bar, sidebar hierarchy,
+   project selector, composer, send button, and focus behavior recognizable. Never
+   hide a real control to make a screenshot cleaner.
+5. Treat `.codeface-project-bar`, `.codeface-project-section`, and
+   `.codeface-composer-stack` as layout invariants. Style their material only; never
+   add negative margins, transforms, or fixed heights. Maintain a positive measured
+   gap between the project selector and composer.
+6. Derive `backgroundPosition`, sidebar width, content width, composer width, and
+   readable surface colors from the actual artwork. Validate dark photographic,
+   light photographic, and image-free/gradient themes instead of assuming one layout
+   works for all three.
+7. Check the CodeFace preview against the live Codex home route. The preview should
+   show the same shared background, crop focus, sidebar proportion, project selector,
+   composer placement, and optional branding. A transparent 1×1 placeholder is not a
+   real background; use the theme gradient and avatar treatment instead.
+8. Verify at least the home route, a conversation, settings in the relevant shell,
+   a content-dense sidebar, and a narrow window. Measure critical overlaps with DOM
+   rectangles when available; visual inspection alone is insufficient.
+
 ## Apply and verify
 
 Ask before changing live Codex state unless the user explicitly requested application.

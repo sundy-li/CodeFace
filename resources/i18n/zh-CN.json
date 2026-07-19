@@ -50,7 +50,7 @@
   "preview_local": "本地",
   "preview_select_project": "选择项目",
   "projects": "项目",
-  "prompt_copied": "完整主题上下文提示词已复制到剪切板",
+  "prompt_copied": "已复制包含 Skill 地址和主题路径的提示词",
   "pull_requests": "拉取请求",
   "ready": "准备就绪",
   "refresh": "刷新",

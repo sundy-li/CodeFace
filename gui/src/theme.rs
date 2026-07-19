@@ -11,6 +11,8 @@ use std::{
 
 pub const DEFAULT_JSON: &str = include_str!("../../resources/theme-pack-template/theme.json");
 pub const DEFAULT_CSS: &str = include_str!("../../resources/theme-pack-template/codeface.css");
+const CODEFACE_SKILL_URL: &str =
+    "https://raw.githubusercontent.com/sundy-li/CodeFace/refs/heads/main/skills/codeface/SKILL.md";
 
 fn new_theme_json_for_root(root: &Path, date: &str) -> Result<String> {
     let mut version = 1_u32;
@@ -273,96 +275,18 @@ pub fn context_prompt(id: &str, chinese: bool) -> Result<String> {
 }
 
 fn context_prompt_for_root(root: &Path, chinese: bool) -> Result<String> {
-    let json = fs::read_to_string(root.join("theme.json"))?;
+    fs::metadata(root)?;
+    fs::metadata(root.join("theme.json"))?;
     fs::metadata(root.join("codeface.css"))?;
-    let value: Value = serde_json::from_str(&json)?;
-    let image_name = value
-        .get("image")
-        .and_then(Value::as_str)
-        .unwrap_or("background.png");
-    let image_path = root.join(image_name);
-    let metadata = fs::metadata(&image_path)?;
-    let dimensions = image::image_dimensions(&image_path).ok();
-    let dimension_text = dimensions
-        .map(|(width, height)| format!("{width} × {height}"))
-        .unwrap_or_else(|| "unknown".into());
-    let mut files = fs::read_dir(root)?
-        .filter_map(|entry| entry.ok())
-        .map(|entry| entry.file_name().to_string_lossy().into_owned())
-        .collect::<Vec<_>>();
-    files.sort();
-    let files = files
-        .into_iter()
-        .map(|name| format!("- {name}"))
-        .collect::<Vec<_>>()
-        .join("\n");
     let prompt = if chinese {
         format!(
-            r#"请帮我完整优化一个 CodeFace 主题。你可以直接读取和编辑下面的本地主题目录。请先检查现有主题和背景图，再进行有依据的设计调整；不要只给建议，请直接完成修改和验证。
-
-主题目录：{root}
-
-目录文件：
-{files}
-
-背景图片：
-- 路径：{image_path}
-- 尺寸：{dimension_text}
-- 文件大小：{image_bytes} bytes
-
-设计范围：
-1. 不要只优化首页。必须同时检查首页、左侧导航栏、聊天/任务页面、消息内容区、顶部栏和输入框。
-2. 从背景图片中提取协调的背景色、面板色、强调色、文字色和边框色，让所有页面属于同一视觉系统。
-3. 首页可以使用背景图片；聊天和任务页面应优先使用与图片协调的纯色或低对比渐变，避免重复铺设人物或复杂图片影响阅读。
-4. 保持清晰的信息层级、正文可读性、足够的颜色对比度，以及 hover、pressed、selected、focus-visible 和 reduced-motion 状态。
-5. 保留所有真实 Codex 控件和交互。装饰层必须不可交互，不得遮挡、替换或隐藏原生功能。
-
-实现要求：
-1. 直接编辑主题目录中的 `theme.json` 和 `codeface.css`；仅在确有必要时替换背景图片。
-2. 不要修改 CodeFace 源码或官方 Codex 应用。
-3. 保持 JSON 的 `image` 字段与实际图片文件一致。
-4. CSS 中不得使用 `@import`、`@font-face` 或任何外部 `url(...)` 资源。
-5. CSS 必须保持在 256 KiB 以内，图片必须保持在 16 MiB 以内。
-6. 修改完成后验证 JSON、CSS、图片引用和文件大小，并确认主题包仍可导入。
-7. 最后总结修改过的文件、主要设计决策和验证结果。
-"#,
+            "请先读取并遵循 CodeFace Skill，然后直接优化并验证指定主题。\n\nSkill 文档：\n{CODEFACE_SKILL_URL}\n\n主题目录：\n{root}\n",
             root = root.display(),
-            image_path = image_path.display(),
-            image_bytes = metadata.len()
         )
     } else {
         format!(
-            r#"Help me fully refine a CodeFace theme. You can read and edit the local theme directory below. Inspect the existing theme and background image before making evidence-based design changes. Do not stop at recommendations: edit the files and verify the result.
-
-Theme directory: {root}
-
-Directory files:
-{files}
-
-Background image:
-- Path: {image_path}
-- Dimensions: {dimension_text}
-- File size: {image_bytes} bytes
-
-Design scope:
-1. Do not optimize only the home screen. Review the home screen, left navigation, chat/task pages, message content, top bar, and composer.
-2. Derive coordinated canvas, panel, accent, text, and border colors from the background image so every route belongs to one visual system.
-3. The home screen may use the image. Prefer image-related solid colors or low-contrast gradients on chat and task pages; do not repeat a portrait or detailed image where it would impair reading.
-4. Preserve clear hierarchy, readable text, sufficient contrast, and distinct hover, pressed, selected, focus-visible, and reduced-motion states.
-5. Preserve every real Codex control and interaction. Decorative layers must be non-interactive and must never obscure, replace, or hide native functionality.
-
-Implementation requirements:
-1. Edit `theme.json` and `codeface.css` directly in the theme directory; replace the background image only when necessary.
-2. Do not modify the CodeFace source code or the official Codex application.
-3. Keep the JSON `image` field consistent with the actual image file.
-4. Do not use `@import`, `@font-face`, or external `url(...)` resources in CSS.
-5. Keep CSS below 256 KiB and the background image below 16 MiB.
-6. Validate JSON, CSS, the image reference, and file-size limits, then confirm that the package remains importable.
-7. Finish with a concise summary of changed files, key design decisions, and verification results.
-"#,
+            "Read and follow the CodeFace Skill first, then directly refine and verify the specified theme.\n\nSkill document:\n{CODEFACE_SKILL_URL}\n\nTheme directory:\n{root}\n",
             root = root.display(),
-            image_path = image_path.display(),
-            image_bytes = metadata.len()
         )
     };
     Ok(prompt)
@@ -481,7 +405,7 @@ mod tests {
     }
 
     #[test]
-    fn context_prompt_contains_complete_editable_context() {
+    fn context_prompt_uses_the_canonical_skill_and_theme_path() {
         let root = std::env::temp_dir().join(format!("codeface-prompt-{}", std::process::id()));
         fs::create_dir_all(&root).expect("create theme");
         fs::write(
@@ -493,18 +417,19 @@ mod tests {
         write_background(None, &root.join("background.png")).expect("write image");
         let prompt = context_prompt_for_root(&root, false).expect("build prompt");
         assert!(prompt.contains(&root.display().to_string()));
-        assert!(prompt.contains("- theme.json"));
-        assert!(prompt.contains("- codeface.css"));
-        assert!(prompt.contains("1 × 1"));
-        assert!(prompt.contains("left navigation"));
-        assert!(prompt.contains("chat/task pages"));
-        assert!(prompt.contains("focus-visible"));
-        assert!(prompt.contains("256 KiB"));
+        assert!(prompt.contains(CODEFACE_SKILL_URL));
+        assert!(prompt.contains("Read and follow the CodeFace Skill first"));
+        assert!(!prompt.contains("Directory files"));
+        assert!(!prompt.contains("Background image"));
+        assert!(!prompt.contains("Implementation requirements"));
 
         let chinese_prompt = context_prompt_for_root(&root, true).expect("build Chinese prompt");
-        assert!(chinese_prompt.contains("左侧导航栏"));
-        assert!(chinese_prompt.contains("聊天/任务页面"));
-        assert!(chinese_prompt.contains("不要修改 CodeFace 源码"));
+        assert!(chinese_prompt.contains(&root.display().to_string()));
+        assert!(chinese_prompt.contains(CODEFACE_SKILL_URL));
+        assert!(chinese_prompt.contains("请先读取并遵循 CodeFace Skill"));
+        assert!(!chinese_prompt.contains("目录文件"));
+        assert!(!chinese_prompt.contains("背景图片"));
+        assert!(!chinese_prompt.contains("实现要求"));
         fs::remove_dir_all(root).expect("remove theme");
     }
 

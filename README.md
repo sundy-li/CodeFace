@@ -33,8 +33,8 @@ Release builds are currently not notarized or code-signed with a commercial cert
 ### Customize themes with an LLM
 
 1. Create or open a theme, then upload a PNG, JPEG, or WebP background image.
-2. Click **Copy full prompt** to copy the theme files, image information, editable paths, layout requirements, and safety constraints as one complete prompt.
-3. Paste the prompt into an LLM and describe the visual style you want. An LLM with access to the theme directory can then update the theme for you.
+2. Click **Copy full prompt** to copy the current theme directory and the canonical CodeFace Skill URL.
+3. Paste the prompt into an LLM and describe the visual style you want. The LLM reads the latest Skill instructions and edits the referenced local theme directory.
 
 CodeFace generates a plain white background automatically when no image is selected.
 
