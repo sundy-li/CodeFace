@@ -24,7 +24,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo xtask package
       - run: ditto -c -k --sequesterRsrc --keepParent "dist/CodeFace.app" "dist/CodeFace-macOS.zip"
-      - run: shasum -a 256 "dist/CodeFace-macOS.zip" > "dist/CodeFace-macOS.zip.sha256"
+      - run: cd dist && shasum -a 256 "CodeFace-macOS.zip" > "CodeFace-macOS.zip.sha256"
       - uses: actions/upload-artifact@v7
         with:
           name: CodeFace-macOS
