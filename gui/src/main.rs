@@ -323,6 +323,12 @@ impl CodeFaceApp {
         if let Err(error) = theme::install_bundled_themes() {
             app.status = Self::error_message(app.locale(), &error);
         }
+        // The settings bridge runs in a detached copy of this executable. Refresh it
+        // whenever the GUI starts so a rebuilt or updated CodeFace never keeps using
+        // health-check logic from an older process image.
+        if let Err(error) = cdp::refresh_control_daemon() {
+            app.status = Self::error_message(app.locale(), &error);
+        }
         app.reload();
         app.applied = app.detect_applied_theme();
         app

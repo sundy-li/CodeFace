@@ -79,6 +79,58 @@ pub struct HealthReport {
     pub issues: Vec<String>,
 }
 
+fn build_health_report(expected_theme_id: &str, pages: Vec<PageHealth>) -> HealthReport {
+    let mut issues = Vec::new();
+    for page in &pages {
+        let inspectable = page.page == "codeface-settings" || page.critical_controls > 0;
+        if page.theme_id != expected_theme_id {
+            issues.push(format!(
+                "{} did not report the expected theme",
+                page.target_id
+            ));
+        }
+        if inspectable && page.critical_controls < 2 {
+            issues.push(format!(
+                "{} exposes only {} critical controls",
+                page.target_id, page.critical_controls
+            ));
+        }
+        if inspectable && page.hidden_controls > 0 && page.page != "codeface-settings" {
+            issues.push(format!(
+                "{} has {} hidden critical controls",
+                page.target_id, page.hidden_controls
+            ));
+        }
+        let contrast_limit = if page.page == "codeface-settings" {
+            24
+        } else {
+            4
+        };
+        if inspectable && page.low_contrast_text > contrast_limit {
+            issues.push(format!(
+                "{} has {} low-contrast text samples",
+                page.target_id, page.low_contrast_text
+            ));
+        }
+        if inspectable && page.suggestion_rebuilds > 0 {
+            issues.push(format!(
+                "{} rebuilt suggestions {} times",
+                page.target_id, page.suggestion_rebuilds
+            ));
+        }
+    }
+    let has_inspectable_page = pages
+        .iter()
+        .any(|page| page.page == "codeface-settings" || page.critical_controls > 0);
+    let healthy = has_inspectable_page && pages.iter().all(|page| page.healthy);
+    HealthReport {
+        healthy,
+        expected_theme_id: expected_theme_id.to_owned(),
+        pages,
+        issues,
+    }
+}
+
 fn targets(port: u16) -> Result<Vec<Target>> {
     let endpoint = format!("http://127.0.0.1:{port}/json/list");
     let values: Vec<Target> = reqwest::blocking::Client::builder()
@@ -1022,6 +1074,7 @@ pub fn health_check(port: u16, expected_theme_id: &str) -> Result<HealthReport> 
                 (document.querySelector('main[data-codexthemes-page]')?.dataset.codexthemesPage ||
                 (document.querySelector('[data-thread-find-target="conversation"]') ? 'conversation' : 'unknown'));
               const settingsHealthy = embeddedSettings && visible(embeddedSettings) && lowContrast <= 24;
+              const inspectable = Boolean(embeddedSettings) || controls.length > 0;
               resolve({{
                 page,
                 themeId,
@@ -1030,9 +1083,9 @@ pub fn health_check(port: u16, expected_theme_id: &str) -> Result<HealthReport> 
                 lowContrastText: lowContrast,
                 lowContrastSamples,
                 suggestionRebuilds,
-                healthy: themeId === expected && suggestionRebuilds === 0 &&
-                  (embeddedSettings ? settingsHealthy :
-                    controls.length >= 2 && hidden === 0 && lowContrast <= 4)
+                healthy: themeId === expected && (!inspectable ||
+                  (suggestionRebuilds === 0 && (embeddedSettings ? settingsHealthy :
+                    controls.length >= 2 && hidden === 0 && lowContrast <= 4)))
               }});
             }}, 1800);
           }}, 750);
@@ -1084,51 +1137,7 @@ pub fn health_check(port: u16, expected_theme_id: &str) -> Result<HealthReport> 
                 .unwrap_or(false),
         });
     }
-    let mut issues = Vec::new();
-    for page in &pages {
-        if page.theme_id != expected_theme_id {
-            issues.push(format!(
-                "{} did not report the expected theme",
-                page.target_id
-            ));
-        }
-        if page.critical_controls < 2 {
-            issues.push(format!(
-                "{} exposes only {} critical controls",
-                page.target_id, page.critical_controls
-            ));
-        }
-        if page.hidden_controls > 0 && page.page != "codeface-settings" {
-            issues.push(format!(
-                "{} has {} hidden critical controls",
-                page.target_id, page.hidden_controls
-            ));
-        }
-        let contrast_limit = if page.page == "codeface-settings" {
-            24
-        } else {
-            4
-        };
-        if page.low_contrast_text > contrast_limit {
-            issues.push(format!(
-                "{} has {} low-contrast text samples",
-                page.target_id, page.low_contrast_text
-            ));
-        }
-        if page.suggestion_rebuilds > 0 {
-            issues.push(format!(
-                "{} rebuilt suggestions {} times",
-                page.target_id, page.suggestion_rebuilds
-            ));
-        }
-    }
-    let healthy = !pages.is_empty() && pages.iter().all(|page| page.healthy);
-    Ok(HealthReport {
-        healthy,
-        expected_theme_id: expected_theme_id.to_owned(),
-        pages,
-        issues,
-    })
+    Ok(build_health_report(expected_theme_id, pages))
 }
 
 fn write_state(state: &RuntimeState) -> Result<()> {
@@ -1400,7 +1409,7 @@ pub fn pause_control_for_update() -> Result<()> {
     Ok(())
 }
 
-pub fn resume_control_after_update() -> Result<()> {
+pub fn refresh_control_daemon() -> Result<()> {
     let path = paths::state_path()?;
     let Ok(text) = fs::read_to_string(&path) else {
         return Ok(());
@@ -1408,6 +1417,10 @@ pub fn resume_control_after_update() -> Result<()> {
     let mut state: RuntimeState = serde_json::from_str(&text)?;
     state.injector_pid = daemon_pid(state.port, Some(&state))?;
     write_state(&state)
+}
+
+pub fn resume_control_after_update() -> Result<()> {
+    refresh_control_daemon()
 }
 
 fn resume_control_session(port: u16, previous: Option<&RuntimeState>) -> Result<RuntimeState> {
@@ -1554,6 +1567,53 @@ mod tests {
         )
         .expect("deserialize schema-two state");
         assert!(state.theme_id.is_empty());
+    }
+
+    fn page_health(target_id: &str, page: &str, controls: u64, healthy: bool) -> PageHealth {
+        PageHealth {
+            target_id: target_id.to_owned(),
+            page: page.to_owned(),
+            theme_id: "test-theme".to_owned(),
+            critical_controls: controls,
+            hidden_controls: 0,
+            low_contrast_text: 0,
+            low_contrast_samples: Vec::new(),
+            suggestion_rebuilds: 0,
+            healthy,
+        }
+    }
+
+    #[test]
+    fn health_report_ignores_unmounted_targets_when_a_real_page_is_healthy() {
+        let report = build_health_report(
+            "test-theme",
+            vec![
+                page_health("primary", "conversation", 3, true),
+                page_health("unmounted", "system", 0, true),
+            ],
+        );
+        assert!(report.healthy);
+        assert!(report.issues.is_empty());
+    }
+
+    #[test]
+    fn health_report_requires_at_least_one_inspectable_page() {
+        let report = build_health_report(
+            "test-theme",
+            vec![page_health("unmounted", "unknown", 0, true)],
+        );
+        assert!(!report.healthy);
+        assert!(report.issues.is_empty());
+    }
+
+    #[test]
+    fn health_report_still_rejects_partially_mounted_pages() {
+        let report = build_health_report(
+            "test-theme",
+            vec![page_health("partial", "unknown", 1, false)],
+        );
+        assert!(!report.healthy);
+        assert_eq!(report.issues, ["partial exposes only 1 critical controls"]);
     }
 
     #[test]

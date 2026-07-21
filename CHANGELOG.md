@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.1 — 2026-07-21
+
+- Fixed local theme switches being incorrectly rolled back when the Codex avatar overlay exposed no critical controls.
+- Kept health checks strict for real Codex pages while excluding renderer targets that have no inspectable UI surface.
+- Refresh the detached injector daemon whenever CodeFace starts so rebuilt or updated health-check logic takes effect immediately.
+
 ## 1.6.0 — 2026-07-21
 
 - Embedded the complete CodeFace theme library directly below **Appearance** in Codex Settings, with Local and Market views, source editing, import/export, and native/custom switching.
