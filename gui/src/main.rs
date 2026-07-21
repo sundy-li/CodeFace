@@ -3,11 +3,12 @@ mod i18n;
 mod paths;
 mod platform;
 mod theme;
+mod updater;
 
 use anyhow::{Result, anyhow, bail};
 use gpui::{
-    AnyElement, App, Application, AssetSource, Bounds, ClipboardItem, Context, ObjectFit,
-    SharedString, TitlebarOptions, Window, WindowBounds, WindowOptions, div, img,
+    AnyElement, App, Application, AssetSource, Bounds, ClipboardItem, Context, KeyDownEvent,
+    ObjectFit, SharedString, TitlebarOptions, Window, WindowBounds, WindowOptions, div, img,
     linear_color_stop, linear_gradient, prelude::*, px, relative, rgb, rgba, size, svg,
 };
 #[cfg(target_os = "macos")]
@@ -28,6 +29,10 @@ impl AssetSource for CodeFaceAssets {
     fn load(&self, path: &str) -> Result<Option<Cow<'static, [u8]>>> {
         let bytes: &'static [u8] = match path {
             "icons/refresh-cw.svg" => include_bytes!("../../resources/icons/refresh-cw.svg"),
+            "icons/arrow-left.svg" => include_bytes!("../../resources/icons/arrow-left.svg"),
+            "icons/download.svg" => include_bytes!("../../resources/icons/download.svg"),
+            "icons/palette.svg" => include_bytes!("../../resources/icons/palette.svg"),
+            "icons/power.svg" => include_bytes!("../../resources/icons/power.svg"),
             "icons/plus.svg" => include_bytes!("../../resources/icons/plus.svg"),
             "icons/settings.svg" => include_bytes!("../../resources/icons/settings.svg"),
             "icons/pencil.svg" => include_bytes!("../../resources/icons/pencil.svg"),
@@ -41,6 +46,10 @@ impl AssetSource for CodeFaceAssets {
         if path == "icons" {
             Ok([
                 "refresh-cw.svg",
+                "arrow-left.svg",
+                "download.svg",
+                "palette.svg",
+                "power.svg",
                 "plus.svg",
                 "settings.svg",
                 "pencil.svg",
@@ -145,13 +154,14 @@ struct CodeFaceApp {
     applied: Option<String>,
     status: SharedString,
     busy: bool,
+    update_status: UpdateStatus,
     settings_open: bool,
     codex_menu_open: bool,
     add_theme_menu_open: bool,
+    codexthemes_open: bool,
     language: Language,
     appearance: Appearance,
     pending_delete: Option<String>,
-    codexthemes_open: bool,
     codexthemes_error: Option<SharedString>,
     market_results: Vec<theme::MarketTheme>,
     market_preview_theme: Option<theme::MarketTheme>,
@@ -163,8 +173,16 @@ struct CodeFaceApp {
     draft_image: Option<PathBuf>,
     theme_json_editor: gpui::Entity<InputState>,
     css_editor: gpui::Entity<InputState>,
-    codexthemes_input: gpui::Entity<InputState>,
     library_search_input: gpui::Entity<InputState>,
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+enum UpdateStatus {
+    #[default]
+    Idle,
+    Checking,
+    Current,
+    Failed,
 }
 
 fn apply_theme_checked(
@@ -258,6 +276,7 @@ impl CodeFaceApp {
     }
     fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
         let language = i18n::load();
+        let appearance = i18n::load_appearance();
         let theme_json_editor = cx.new(|cx| {
             InputState::new(window, cx)
                 .code_editor("json")
@@ -270,28 +289,24 @@ impl CodeFaceApp {
                 .line_number(true)
                 .default_value(theme::DEFAULT_CSS)
         });
-        let codexthemes_input = cx.new(|cx| {
-            InputState::new(window, cx)
-                .placeholder("portal-panic or https://codexthemes.ai/themes/portal-panic")
-        });
         let library_search_input = cx.new(|cx| {
             InputState::new(window, cx)
                 .placeholder(t(language.effective(), "search_themes_placeholder"))
         });
-        let appearance = i18n::load_appearance();
         let mut app = Self {
             themes: Vec::new(),
             selected: None,
             applied: None,
             status: t(language.effective(), "ready").into(),
             busy: false,
+            update_status: UpdateStatus::Idle,
             settings_open: false,
             codex_menu_open: false,
             add_theme_menu_open: false,
+            codexthemes_open: false,
             language,
             appearance,
             pending_delete: None,
-            codexthemes_open: false,
             codexthemes_error: None,
             market_results: Vec::new(),
             market_preview_theme: None,
@@ -303,7 +318,6 @@ impl CodeFaceApp {
             draft_image: None,
             theme_json_editor,
             css_editor,
-            codexthemes_input,
             library_search_input,
         };
         if let Err(error) = theme::install_bundled_themes() {
@@ -336,6 +350,36 @@ impl CodeFaceApp {
             Err(error) => format!("{}: {error:#}", t(self.locale(), "operation_failed")).into(),
         };
         cx.notify();
+    }
+
+    fn show_preferences(&mut self, cx: &mut Context<Self>) {
+        self.settings_open = true;
+        cx.notify();
+    }
+
+    fn hide_preferences(&mut self, cx: &mut Context<Self>) {
+        self.settings_open = false;
+        cx.notify();
+    }
+
+    fn use_system_language(&mut self, cx: &mut Context<Self>) {
+        self.set_language(Language::System, cx);
+    }
+
+    fn use_english(&mut self, cx: &mut Context<Self>) {
+        self.set_language(Language::English, cx);
+    }
+
+    fn use_simplified_chinese(&mut self, cx: &mut Context<Self>) {
+        self.set_language(Language::SimplifiedChinese, cx);
+    }
+
+    fn use_light_appearance(&mut self, cx: &mut Context<Self>) {
+        self.set_appearance(Appearance::Light, cx);
+    }
+
+    fn use_dark_appearance(&mut self, cx: &mut Context<Self>) {
+        self.set_appearance(Appearance::Dark, cx);
     }
 
     fn state_root() -> PathBuf {
@@ -698,11 +742,6 @@ impl CodeFaceApp {
         .detach();
     }
 
-    fn begin_install_codexthemes(&mut self, cx: &mut Context<Self>) {
-        let input = self.codexthemes_input.read(cx).value().to_string();
-        self.begin_install_codexthemes_value(input, false, cx);
-    }
-
     fn begin_install_codexthemes_value(
         &mut self,
         input: String,
@@ -731,7 +770,6 @@ impl CodeFaceApp {
                     if apply {
                         app.applied = Some(id);
                     }
-                    app.codexthemes_open = false;
                     app.status = t(
                         app.locale(),
                         if apply {
@@ -786,11 +824,6 @@ impl CodeFaceApp {
         );
     }
 
-    fn begin_search_codexthemes(&mut self, cx: &mut Context<Self>) {
-        let query = self.codexthemes_input.read(cx).value().to_string();
-        self.begin_search_codexthemes_query(query, cx);
-    }
-
     fn begin_search_codexthemes_query(&mut self, query: String, cx: &mut Context<Self>) {
         let locale = self.locale();
         self.codexthemes_error = None;
@@ -812,6 +845,11 @@ impl CodeFaceApp {
             },
             cx,
         );
+    }
+
+    fn begin_search_codexthemes(&mut self, cx: &mut Context<Self>) {
+        let query = self.library_search_input.read(cx).value().to_string();
+        self.begin_search_codexthemes_query(query, cx);
     }
 
     fn set_library_view(&mut self, view: LibraryView, window: &mut Window, cx: &mut Context<Self>) {
@@ -1008,6 +1046,60 @@ impl CodeFaceApp {
             },
             cx,
         );
+    }
+
+    fn begin_open_codeface_settings(&mut self, cx: &mut Context<Self>) {
+        let locale = self.locale();
+        self.run_operation_async(
+            t(locale, "settings"),
+            cdp::open_codeface_settings,
+            |app, result| {
+                app.status = match result {
+                    Ok(()) => t(app.locale(), "ready").into(),
+                    Err(error) => Self::error_message(app.locale(), &error),
+                }
+            },
+            cx,
+        );
+    }
+
+    fn begin_update(&mut self, cx: &mut Context<Self>) {
+        if self.busy {
+            return;
+        }
+        self.busy = true;
+        self.update_status = UpdateStatus::Checking;
+        self.status = match self.locale() {
+            Locale::SimplifiedChinese => "正在检查更新…".into(),
+            Locale::English => "Checking for updates…".into(),
+        };
+        cx.notify();
+        let executor = cx.background_executor().clone();
+        cx.spawn(async move |entity, cx| {
+            let result = executor
+                .spawn(async { updater::check_and_prepare_update() })
+                .await;
+            let _ = entity.update(cx, move |app, cx| {
+                app.busy = false;
+                match result {
+                    Ok(updater::UpdateOutcome::UpToDate) => {
+                        app.update_status = UpdateStatus::Current;
+                        app.status = match app.locale() {
+                            Locale::SimplifiedChinese => "当前已是最新版本".into(),
+                            Locale::English => "CodeFace is up to date".into(),
+                        };
+                        cx.notify();
+                    }
+                    Ok(updater::UpdateOutcome::Restarting) => cx.quit(),
+                    Err(error) => {
+                        app.update_status = UpdateStatus::Failed;
+                        app.status = Self::error_message(app.locale(), &error);
+                        cx.notify();
+                    }
+                }
+            });
+        })
+        .detach();
     }
 
     fn copy_context_prompt(&mut self, cx: &mut Context<Self>) {
@@ -1654,8 +1746,9 @@ fn titlebar_options() -> TitlebarOptions {
     }
 }
 
-impl Render for CodeFaceApp {
-    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+impl CodeFaceApp {
+    #[allow(dead_code)]
+    fn render_manager(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let locale = self.locale();
         let palette = self.appearance.palette();
         let codex_menu_open = self.codex_menu_open;
@@ -2715,20 +2808,7 @@ impl Render for CodeFaceApp {
                         ))
                         .child(button(cx, t(locale, "import_pack"), false, |app, _, cx| {
                             app.begin_import_pack(cx)
-                        }))
-                        .child(button(
-                            cx,
-                            t(locale, "install_from_codexthemes"),
-                            false,
-                            |app, _, cx| {
-                                app.add_theme_menu_open = false;
-                                app.codexthemes_open = true;
-                                app.codexthemes_error = None;
-                                app.market_results.clear();
-                                app.pending_delete = None;
-                                cx.notify();
-                            },
-                        )),
+                        })),
                 )
             })
             .when(codex_menu_open, |root| {
@@ -2865,18 +2945,12 @@ impl Render for CodeFaceApp {
                                 )
                                 .child(
                                     div()
-                                        .text_sm()
-                                        .text_color(rgb(palette.muted))
-                                        .child(t(locale, "codexthemes_install_help")),
-                                )
-                                .child(
-                                    div()
                                         .h(px(42.))
                                         .flex()
                                         .gap_2()
                                         .child(
                                             div().flex_1().rounded_lg().overflow_hidden().child(
-                                                Input::new(&self.codexthemes_input).h_full(),
+                                                Input::new(&self.library_search_input).h_full(),
                                             ),
                                         )
                                         .child(button_with_id(
@@ -3134,13 +3208,6 @@ impl Render for CodeFaceApp {
                                                 app.market_preview_image = None;
                                                 cx.notify();
                                             },
-                                        ))
-                                        .child(button_with_id(
-                                            cx,
-                                            "confirm-codexthemes-install".into(),
-                                            t(locale, "install"),
-                                            true,
-                                            |app, _, cx| app.begin_install_codexthemes(cx),
                                         )),
                                 ),
                         ),
@@ -3149,8 +3216,408 @@ impl Render for CodeFaceApp {
     }
 }
 
+impl Render for CodeFaceApp {
+    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let locale = self.locale();
+        let palette = self.appearance.palette();
+        let busy = self.busy;
+        let choice =
+            |id: &'static str,
+             label: &'static str,
+             selected: bool,
+             handler: fn(&mut CodeFaceApp, &mut Context<CodeFaceApp>)| {
+                div()
+                    .id(id)
+                    .h(px(36.))
+                    .px_4()
+                    .rounded_lg()
+                    .cursor_pointer()
+                    .flex_1()
+                    .flex()
+                    .items_center()
+                    .justify_center()
+                    .border_1()
+                    .border_color(if selected {
+                        rgb(palette.accent)
+                    } else {
+                        rgb(palette.border)
+                    })
+                    .bg(if selected {
+                        rgb(palette.accent_soft)
+                    } else {
+                        rgb(palette.background)
+                    })
+                    .text_color(rgb(palette.text))
+                    .text_sm()
+                    .hover(|button| button.opacity(0.84))
+                    .on_click(cx.listener(move |app, _, _, cx| handler(app, cx)))
+                    .child(label)
+            };
+        let icon_action =
+            |id: &'static str,
+             icon_path: &'static str,
+             label: &'static str,
+             caption: &'static str,
+             primary: bool,
+             danger: bool,
+             handler: fn(&mut CodeFaceApp, &mut Context<CodeFaceApp>)| {
+                let color = if danger { 0xD94A58 } else { palette.text };
+                div()
+                    .id(id)
+                    .w(px(72.))
+                    .cursor_pointer()
+                    .flex()
+                    .flex_col()
+                    .items_center()
+                    .justify_center()
+                    .gap_2()
+                    .text_color(rgb(color))
+                    .when(busy, |button| button.opacity(0.52).cursor_default())
+                    .hover(|button| button.opacity(0.78))
+                    .tooltip(move |window, cx| Tooltip::new(label).build(window, cx))
+                    .child(
+                        div()
+                            .size(px(58.))
+                            .rounded_xl()
+                            .flex()
+                            .items_center()
+                            .justify_center()
+                            .border_1()
+                            .border_color(if danger {
+                                rgb(0xD94A58)
+                            } else if primary {
+                                rgb(palette.accent)
+                            } else {
+                                rgb(palette.border)
+                            })
+                            .bg(if primary {
+                                rgb(palette.accent_soft)
+                            } else {
+                                rgb(palette.background)
+                            })
+                            .child(svg().path(icon_path).size(px(23.)).text_color(rgb(color))),
+                    )
+                    .child(
+                        div()
+                            .text_xs()
+                            .font_weight(gpui::FontWeight::MEDIUM)
+                            .child(caption),
+                    )
+                    .on_click(cx.listener(move |app, _, _, cx| {
+                        if !app.busy {
+                            handler(app, cx);
+                        }
+                    }))
+            };
+
+        div()
+            .size_full()
+            .capture_key_down(cx.listener(|app, event: &KeyDownEvent, _, cx| {
+                if app.settings_open && event.keystroke.key.eq_ignore_ascii_case("escape") {
+                    cx.stop_propagation();
+                    app.hide_preferences(cx);
+                }
+            }))
+            .bg(rgb(palette.background))
+            .text_color(rgb(palette.text))
+            .flex()
+            .flex_col()
+            .child(macos_titlebar())
+            .child(
+                div()
+                    .flex_1()
+                    .p_3()
+                    .flex()
+                    .items_center()
+                    .justify_center()
+                    .child(if self.settings_open {
+                        div()
+                            .w_full()
+                            .h_full()
+                            .max_w(px(456.))
+                            .p_4()
+                            .rounded_xl()
+                            .border_1()
+                            .border_color(rgb(palette.border))
+                            .bg(rgb(palette.background))
+                            .flex()
+                            .flex_col()
+                            .gap_3()
+                            .child(
+                                div()
+                                    .flex()
+                                    .items_center()
+                                    .gap_3()
+                                    .child(
+                                        div()
+                                            .id("close-codeface-preferences")
+                                            .size(px(34.))
+                                            .rounded_lg()
+                                            .cursor_pointer()
+                                            .flex()
+                                            .items_center()
+                                            .justify_center()
+                                            .border_1()
+                                            .border_color(rgb(palette.border))
+                                            .hover(|button| button.opacity(0.78))
+                                            .tooltip(move |window, cx| {
+                                                Tooltip::new(t(locale, "back")).build(window, cx)
+                                            })
+                                            .child(
+                                                svg()
+                                                    .path("icons/arrow-left.svg")
+                                                    .size(px(18.))
+                                                    .text_color(rgb(palette.text)),
+                                            )
+                                            .on_click(cx.listener(|app, _, _, cx| {
+                                                app.hide_preferences(cx);
+                                            })),
+                                    )
+                                    .child(
+                                        div()
+                                            .text_2xl()
+                                            .font_weight(gpui::FontWeight::SEMIBOLD)
+                                            .child(match locale {
+                                                Locale::SimplifiedChinese => "CodeFace 设置",
+                                                Locale::English => "CodeFace Settings",
+                                            }),
+                                    ),
+                            )
+                            .child(div().text_sm().text_color(rgb(palette.muted)).child(
+                                match locale {
+                                    Locale::SimplifiedChinese => {
+                                        "这些选项只影响 CodeFace 独立窗口。"
+                                    }
+                                    Locale::English => {
+                                        "These options affect only the CodeFace window."
+                                    }
+                                },
+                            ))
+                            .child(
+                                div()
+                                    .flex()
+                                    .flex_col()
+                                    .gap_2()
+                                    .child(
+                                        div()
+                                            .text_sm()
+                                            .text_color(rgb(palette.muted))
+                                            .child(t(locale, "language")),
+                                    )
+                                    .child(
+                                        div()
+                                            .flex()
+                                            .gap_2()
+                                            .child(choice(
+                                                "language-system",
+                                                t(locale, "follow_system"),
+                                                self.language == Language::System,
+                                                CodeFaceApp::use_system_language,
+                                            ))
+                                            .child(choice(
+                                                "language-english",
+                                                "English",
+                                                self.language == Language::English,
+                                                CodeFaceApp::use_english,
+                                            ))
+                                            .child(choice(
+                                                "language-chinese",
+                                                "简体中文",
+                                                self.language == Language::SimplifiedChinese,
+                                                CodeFaceApp::use_simplified_chinese,
+                                            )),
+                                    ),
+                            )
+                            .child(
+                                div()
+                                    .flex()
+                                    .flex_col()
+                                    .gap_2()
+                                    .child(
+                                        div()
+                                            .text_sm()
+                                            .text_color(rgb(palette.muted))
+                                            .child(t(locale, "codeface_appearance")),
+                                    )
+                                    .child(
+                                        div()
+                                            .flex()
+                                            .gap_2()
+                                            .child(choice(
+                                                "appearance-light",
+                                                t(locale, "light"),
+                                                self.appearance == Appearance::Light,
+                                                CodeFaceApp::use_light_appearance,
+                                            ))
+                                            .child(choice(
+                                                "appearance-dark",
+                                                t(locale, "dark"),
+                                                self.appearance == Appearance::Dark,
+                                                CodeFaceApp::use_dark_appearance,
+                                            )),
+                                    ),
+                            )
+                    } else {
+                        div()
+                            .w_full()
+                            .h_full()
+                            .max_w(px(456.))
+                            .p_5()
+                            .rounded_xl()
+                            .border_1()
+                            .border_color(rgb(palette.border))
+                            .bg(rgb(palette.background))
+                            .flex()
+                            .flex_col()
+                            .justify_center()
+                            .gap_5()
+                            .child(
+                                div().flex().items_center().justify_center().child(
+                                    div()
+                                        .text_2xl()
+                                        .font_weight(gpui::FontWeight::SEMIBOLD)
+                                        .child("CodeFace"),
+                                ),
+                            )
+                            .child(
+                                div()
+                                    .flex()
+                                    .items_center()
+                                    .justify_center()
+                                    .gap_3()
+                                    .child(icon_action(
+                                        "open-codeface-settings",
+                                        "icons/palette.svg",
+                                        match locale {
+                                            Locale::SimplifiedChinese => "打开 Codex 主题设置",
+                                            Locale::English => "Open Codex theme settings",
+                                        },
+                                        match locale {
+                                            Locale::SimplifiedChinese => "主题",
+                                            Locale::English => "Themes",
+                                        },
+                                        true,
+                                        false,
+                                        CodeFaceApp::begin_open_codeface_settings,
+                                    ))
+                                    .child(icon_action(
+                                        "open-codeface-preferences",
+                                        "icons/settings.svg",
+                                        match locale {
+                                            Locale::SimplifiedChinese => "CodeFace 设置",
+                                            Locale::English => "CodeFace settings",
+                                        },
+                                        match locale {
+                                            Locale::SimplifiedChinese => "设置",
+                                            Locale::English => "Settings",
+                                        },
+                                        false,
+                                        false,
+                                        CodeFaceApp::show_preferences,
+                                    ))
+                                    .child(icon_action(
+                                        "restart-codex",
+                                        "icons/refresh-cw.svg",
+                                        t(locale, "restart_codex"),
+                                        match locale {
+                                            Locale::SimplifiedChinese => "重启",
+                                            Locale::English => "Restart",
+                                        },
+                                        false,
+                                        false,
+                                        CodeFaceApp::begin_restart_codex,
+                                    ))
+                                    .child(icon_action(
+                                        "update-codeface",
+                                        "icons/download.svg",
+                                        match (locale, self.update_status) {
+                                            (Locale::SimplifiedChinese, UpdateStatus::Checking) => {
+                                                "正在检查更新"
+                                            }
+                                            (Locale::SimplifiedChinese, UpdateStatus::Current) => {
+                                                "当前已是最新版本"
+                                            }
+                                            (Locale::SimplifiedChinese, UpdateStatus::Failed) => {
+                                                "更新失败，点击重试"
+                                            }
+                                            (Locale::SimplifiedChinese, UpdateStatus::Idle) => {
+                                                "检查并安装更新"
+                                            }
+                                            (Locale::English, UpdateStatus::Checking) => {
+                                                "Checking for updates"
+                                            }
+                                            (Locale::English, UpdateStatus::Current) => {
+                                                "CodeFace is up to date"
+                                            }
+                                            (Locale::English, UpdateStatus::Failed) => {
+                                                "Update failed; click to retry"
+                                            }
+                                            (Locale::English, UpdateStatus::Idle) => {
+                                                "Check and install updates"
+                                            }
+                                        },
+                                        match (locale, self.update_status) {
+                                            (Locale::SimplifiedChinese, UpdateStatus::Checking) => {
+                                                "检查中"
+                                            }
+                                            (Locale::SimplifiedChinese, UpdateStatus::Current) => {
+                                                "最新版"
+                                            }
+                                            (Locale::SimplifiedChinese, UpdateStatus::Failed) => {
+                                                "重试"
+                                            }
+                                            (Locale::SimplifiedChinese, UpdateStatus::Idle) => {
+                                                "更新"
+                                            }
+                                            (Locale::English, UpdateStatus::Checking) => "Checking",
+                                            (Locale::English, UpdateStatus::Current) => "Current",
+                                            (Locale::English, UpdateStatus::Failed) => "Retry",
+                                            (Locale::English, UpdateStatus::Idle) => "Update",
+                                        },
+                                        false,
+                                        false,
+                                        CodeFaceApp::begin_update,
+                                    ))
+                                    .child(icon_action(
+                                        "close-codex",
+                                        "icons/power.svg",
+                                        t(locale, "close_codex"),
+                                        match locale {
+                                            Locale::SimplifiedChinese => "关闭",
+                                            Locale::English => "Close",
+                                        },
+                                        false,
+                                        true,
+                                        CodeFaceApp::begin_close_codex,
+                                    )),
+                            )
+                    }),
+            )
+    }
+}
+
 fn main() {
     let arguments: Vec<String> = env::args().collect();
+    if arguments
+        .get(1)
+        .is_some_and(|value| value == "--complete-update")
+    {
+        if let Err(error) = updater::complete_update(&arguments[2..]) {
+            eprintln!("{error:#}");
+            std::process::exit(1);
+        }
+        return;
+    }
+    if arguments
+        .get(1)
+        .is_some_and(|value| value == "--resume-control-after-update")
+    {
+        if let Err(error) = cdp::resume_control_after_update() {
+            eprintln!("{error:#}");
+            std::process::exit(1);
+        }
+        return;
+    }
     let cli_locale = i18n::load().effective();
     if arguments
         .get(1)
@@ -3162,6 +3629,9 @@ fn main() {
             .and_then(|value| value.parse::<u16>().map_err(Into::into))
             .and_then(|port| cdp::daemon(port, &paths::active_theme_root()?));
         if let Err(error) = result {
+            if let Ok(path) = paths::log_path() {
+                fs::write(path, format!("{error:#}\n")).ok();
+            }
             eprintln!("{error:#}");
             std::process::exit(1);
         }
@@ -3169,6 +3639,16 @@ fn main() {
     }
     if let Some(command) = arguments.get(1).map(String::as_str) {
         let result: Option<Result<String>> = match command {
+            "--check-update" => Some(updater::check_and_prepare_update().map(
+                |outcome| match outcome {
+                    updater::UpdateOutcome::UpToDate => {
+                        format!("CodeFace {} is up to date", paths::VERSION)
+                    }
+                    updater::UpdateOutcome::Restarting => {
+                        "CodeFace update prepared; restarting".into()
+                    }
+                },
+            )),
             "--search-codexthemes" => Some((|| {
                 let query = arguments.get(2).map(String::as_str).unwrap_or_default();
                 Ok(serde_json::to_string_pretty(&theme::search_codexthemes(
@@ -3267,6 +3747,18 @@ fn main() {
                 let state = cdp::apply_active(name, false)?;
                 Ok(serde_json::to_string_pretty(&state)?)
             })()),
+            "--restart-apply-active" => Some((|| {
+                let active = paths::active_theme_root()?;
+                let value: Value =
+                    serde_json::from_str(&fs::read_to_string(active.join("theme.json"))?)?;
+                let name = value
+                    .get("name")
+                    .and_then(Value::as_str)
+                    .unwrap_or("CodeFace")
+                    .to_owned();
+                let state = cdp::apply_active(name, true)?;
+                Ok(serde_json::to_string_pretty(&state)?)
+            })()),
             "--verify" => Some((|| {
                 let port = arguments
                     .get(2)
@@ -3279,6 +3771,27 @@ fn main() {
                     t(cli_locale, "verify_ok"),
                     paths::VERSION
                 ))
+            })()),
+            "--inject-active" => Some((|| {
+                let port = arguments
+                    .get(2)
+                    .ok_or_else(|| anyhow!("Missing CDP port"))?
+                    .parse::<u16>()?;
+                let count = cdp::inject_once(port, &paths::active_theme_root()?)?;
+                Ok(format!("Injected CodeFace into {count} renderer target(s)"))
+            })()),
+            "--start-control" => Some((|| {
+                let port = arguments
+                    .get(2)
+                    .ok_or_else(|| anyhow!("Missing CDP port"))?
+                    .parse::<u16>()?;
+                Ok(serde_json::to_string_pretty(&cdp::start_control_bridge(
+                    port,
+                )?)?)
+            })()),
+            "--open-settings" => Some((|| {
+                cdp::open_codeface_settings()?;
+                Ok("Opened CodeFace in Codex Settings".into())
             })()),
             "--health-check" => Some((|| {
                 let id = arguments
@@ -3314,7 +3827,7 @@ fn main() {
         .with_assets(CodeFaceAssets)
         .run(|cx: &mut App| {
             gpui_component::init(cx);
-            let bounds = Bounds::centered(None, size(px(1280.), px(820.)), cx);
+            let bounds = Bounds::centered(None, size(px(480.), px(320.)), cx);
             cx.open_window(
                 WindowOptions {
                     window_bounds: Some(WindowBounds::Windowed(bounds)),
@@ -3391,5 +3904,12 @@ mod tests {
         assert!(theme_matches_query(&theme, "coastal"));
         assert!(theme_matches_query(&theme, ""));
         assert!(!theme_matches_query(&theme, "cyberpunk"));
+    }
+
+    #[test]
+    fn direct_codexthemes_install_dialog_has_no_ui_entrypoint() {
+        let source = include_str!("main.rs");
+        let assignment = ["codexthemes_open", " = true"].concat();
+        assert!(!source.contains(&assignment));
     }
 }

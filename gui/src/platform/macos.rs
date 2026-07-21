@@ -1,5 +1,6 @@
 use super::{CodexInstall, PlatformBackend};
 use anyhow::{Context, Result, bail};
+use objc2_app_kit::{NSApplicationActivationOptions, NSRunningApplication};
 use std::{
     path::{Path, PathBuf},
     process::Command,
@@ -88,5 +89,20 @@ impl PlatformBackend for MacOsBackend {
         }
         command.spawn().context("failed to launch Codex")?;
         Ok(())
+    }
+
+    fn focus_codex(&self, install: &CodexInstall) -> Result<()> {
+        for pid in matching_processes(install) {
+            let Some(application) =
+                NSRunningApplication::runningApplicationWithProcessIdentifier(pid.as_u32() as i32)
+            else {
+                continue;
+            };
+            application.unhide();
+            if application.activateWithOptions(NSApplicationActivationOptions::ActivateAllWindows) {
+                return Ok(());
+            }
+        }
+        bail!("failed to bring Codex to the foreground")
     }
 }

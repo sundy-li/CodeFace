@@ -11,7 +11,17 @@ CodeFace is a native, cross-platform appearance manager for the Codex desktop ap
 
 CodeFace does not modify the official Codex application, Windows installation, `app.asar`, code signatures, authentication state, or API configuration. Disabling a theme safely restores the official interface.
 
+The standalone CodeFace app is a compact controller for opening theme management, changing CodeFace's own language and appearance, restarting Codex, or closing Codex.
+
+### Standalone controller
+
 ![CodeFace application interface](resources/CodeFace.png)
+
+### Theme management inside Codex
+
+The full theme library lives directly below **Appearance** in Codex Settings. Browse local and Market themes, load full-resolution effect previews, apply or edit a theme, and open less common actions from the compact **More** menu.
+
+![CodeFace theme management inside Codex Settings](resources/CodeFace-Settings.png)
 
 ## Install
 
@@ -28,11 +38,12 @@ Release builds are currently not notarized or code-signed with a commercial cert
 
 - Create, browse, preview, edit, delete, and switch themes from one place
 - Import theme packs and manage them alongside built-in and locally created themes
-- Install compatible `.codex-theme` packages directly from [CodexThemes](https://codexthemes.ai/) by theme ID or detail-page URL
+- Search, preview, install, and apply compatible `.codex-theme` packages from the built-in [CodexThemes](https://codexthemes.ai/) Market
 - Preserve market theme styling with incremental DOM compatibility, stable suggestions, and artwork-aware content positioning
 - Search and preview the market in CodeFace, install or install-and-apply themes, check updates, back up and roll back themes, and export portable packages
 - Verify applied themes against the live Codex DOM and automatically roll back unhealthy results
 - Edit `theme.json` and `codeface.css` directly, with CSS syntax highlighting
+- Open CodeFace directly below **Appearance** in Codex Settings to manage local and market themes, edit source, import or export packages, and switch between native and custom appearances
 
 ### Customize themes with an LLM
 
@@ -46,8 +57,10 @@ CodeFace generates a plain white background automatically when no image is selec
 
 - Preview themes on the home screen with four native shortcut suggestions
 - Close or restart Codex from the manager
+- Check GitHub Latest Release from the standalone controller; verified updates download, install, and restart automatically
 - English and Simplified Chinese interfaces
-- Follow the system language by default, or select a language in Settings
+- Configure the standalone CodeFace window's language and light/dark appearance independently
+- Keep the standalone CodeFace window focused on theme settings, its own two preferences, Codex lifecycle controls, and CodeFace updates
 - One shared GPUI interface and Rust core for macOS and Windows
 
 
@@ -63,7 +76,7 @@ background.png
 
 The template is available in [`resources/theme-pack-template`](resources/theme-pack-template). Double-click a theme in the theme list to edit its source directly.
 
-The theme library has two searchable views: **Local** filters installed themes by name, ID, or description; **Market** loads the full CodexThemes catalog immediately, even before a search is entered, and can then filter it by style or subject. Every listing can be selected for a large local preview. Every published `kind=theme` entry can install locally, including bounded manual ZIP archives and themes without artwork. Choose **Install** to add it to the library, or **Install & apply** to install it, apply it to Codex, run the runtime health gate, and roll back automatically if verification fails. The **+** menu still accepts a theme ID such as `portal-panic` or its `https://codexthemes.ai/themes/<id>` URL for direct installation. `kind=skin` listings are market design references rather than downloadable themes, so CodeFace keeps them searchable and previewable but does not mislabel them as installable packages.
+The theme library has two searchable views: **Local** filters installed themes by name, ID, or description; **Market** loads the full CodexThemes catalog immediately, even before a search is entered, and can then filter it by style or subject. Every listing can be selected for a large local preview. Every published `kind=theme` entry can install locally, including bounded manual ZIP archives and themes without artwork. Choose **Install** to add it to the library, or **Install & apply** to install it, apply it to Codex, run the runtime health gate, and roll back automatically if verification fails. `kind=skin` listings are market design references rather than downloadable themes, so CodeFace keeps them searchable and previewable but does not mislabel them as installable packages.
 
 Market responses are treated as external data: optional text metadata may be missing or `null` without preventing the catalog from loading. Entries without a usable theme ID or name are skipped individually, so one malformed listing cannot make the entire Market view fail. A CodexThemes skin that provides only a visual reference is labeled **Reference only** and does not show misleading install actions.
 
@@ -153,6 +166,8 @@ The same CodeFace Rust executable provides these commands:
 
 ```text
 codeface --apply-active
+codeface --check-update
+codeface --restart-apply-active
 codeface --apply-theme cyberpunk
 codeface --import-theme /path/to/theme-directory
 codeface --install-codexthemes portal-panic
@@ -165,6 +180,9 @@ codeface --list-theme-backups portal-panic
 codeface --rollback-theme portal-panic
 codeface --export-theme portal-panic
 codeface --verify 9341
+codeface --inject-active 9341
+codeface --start-control 9341
+codeface --open-settings
 codeface --restore
 codeface --print-data-root
 ```

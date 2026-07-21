@@ -24,10 +24,13 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo xtask package
       - run: ditto -c -k --sequesterRsrc --keepParent "dist/CodeFace.app" "dist/CodeFace-macOS.zip"
+      - run: shasum -a 256 "dist/CodeFace-macOS.zip" > "dist/CodeFace-macOS.zip.sha256"
       - uses: actions/upload-artifact@v7
         with:
           name: CodeFace-macOS
-          path: dist/CodeFace-macOS.zip
+          path: |
+            dist/CodeFace-macOS.zip
+            dist/CodeFace-macOS.zip.sha256
           if-no-files-found: error
 
   windows:
@@ -42,10 +45,17 @@ jobs:
       - name: Archive Windows application
         shell: pwsh
         run: Compress-Archive -Path "dist/windows/CodeFace.exe", "dist/windows/CodeFace.ico" -DestinationPath "dist/CodeFace-Windows.zip"
+      - name: Create Windows checksum
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash "dist/CodeFace-Windows.zip" -Algorithm SHA256).Hash.ToLower()
+          "$hash  CodeFace-Windows.zip" | Set-Content -NoNewline "dist/CodeFace-Windows.zip.sha256"
       - uses: actions/upload-artifact@v7
         with:
           name: CodeFace-Windows
-          path: dist/CodeFace-Windows.zip
+          path: |
+            dist/CodeFace-Windows.zip
+            dist/CodeFace-Windows.zip.sha256
           if-no-files-found: error
 
   release:
@@ -56,6 +66,10 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v7
+      - name: Verify release tag matches the application version
+        shell: bash
+        run: test "v$(sed -n 's/^version = "\([^"]*\)"/\1/p' gui/Cargo.toml | head -n 1)" = "$GITHUB_REF_NAME"
       - uses: actions/download-artifact@v8
         with:
           pattern: CodeFace-*
@@ -64,4 +78,4 @@ jobs:
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" release/*.zip --repo "$GITHUB_REPOSITORY" --verify-tag --generate-notes --title "CodeFace $GITHUB_REF_NAME"
+        run: gh release create "$GITHUB_REF_NAME" release/*.zip release/*.sha256 --repo "$GITHUB_REPOSITORY" --verify-tag --generate-notes --title "CodeFace $GITHUB_REF_NAME"

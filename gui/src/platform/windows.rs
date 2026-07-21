@@ -8,6 +8,14 @@ use std::{
     time::{Duration, Instant},
 };
 use sysinfo::{ProcessesToUpdate, Signal, System};
+use windows_sys::Win32::{
+    Foundation::{HWND, LPARAM},
+    UI::WindowsAndMessaging::{
+        EnumWindows, GetWindowThreadProcessId, IsWindowVisible, SW_RESTORE, SetForegroundWindow,
+        ShowWindow,
+    },
+};
+use windows_sys::core::BOOL;
 
 pub struct WindowsBackend;
 pub static WINDOWS: WindowsBackend = WindowsBackend;
@@ -56,6 +64,22 @@ fn matching_processes(install: &CodexInstall) -> Vec<sysinfo::Pid> {
         .collect()
 }
 
+struct WindowSearch {
+    pid: u32,
+    window: HWND,
+}
+
+unsafe extern "system" fn find_process_window(window: HWND, parameter: LPARAM) -> BOOL {
+    let search = unsafe { &mut *(parameter as *mut WindowSearch) };
+    let mut pid = 0;
+    unsafe { GetWindowThreadProcessId(window, &mut pid) };
+    if pid == search.pid && unsafe { IsWindowVisible(window) } != 0 {
+        search.window = window;
+        return 0;
+    }
+    1
+}
+
 impl PlatformBackend for WindowsBackend {
     fn discover_codex(&self) -> Result<CodexInstall> {
         for root in candidates() {
@@ -97,5 +121,30 @@ impl PlatformBackend for WindowsBackend {
         }
         command.spawn().context("failed to launch Codex")?;
         Ok(())
+    }
+
+    fn focus_codex(&self, install: &CodexInstall) -> Result<()> {
+        for pid in matching_processes(install) {
+            let mut search = WindowSearch {
+                pid: pid.as_u32(),
+                window: std::ptr::null_mut(),
+            };
+            unsafe {
+                EnumWindows(
+                    Some(find_process_window),
+                    &mut search as *mut WindowSearch as LPARAM,
+                );
+            }
+            if search.window.is_null() {
+                continue;
+            }
+            unsafe {
+                ShowWindow(search.window, SW_RESTORE);
+                if SetForegroundWindow(search.window) != 0 {
+                    return Ok(());
+                }
+            }
+        }
+        bail!("failed to bring Codex to the foreground")
     }
 }

@@ -30,7 +30,10 @@ fn generate_bundled_themes() {
         let json_path = directory.join("theme.json");
         let css_path = directory.join("codeface.css");
         let background_path = directory.join("background.png");
-        for path in [&json_path, &css_path, &background_path] {
+        let preview_path = manifest_dir
+            .join("../resources/examples")
+            .join(format!("theme-{folder_id}.png"));
+        for path in [&json_path, &css_path, &background_path, &preview_path] {
             assert!(
                 path.is_file(),
                 "bundled theme is missing {}",
@@ -65,10 +68,11 @@ fn generate_bundled_themes() {
             "None".into()
         };
         entries.push(format!(
-            "BundledTheme {{ id: {id:?}, json: include_str!({json}), css: include_str!({css}), background: include_bytes!({background}), avatar: {avatar} }}",
+            "BundledTheme {{ id: {id:?}, json: include_str!({json}), css: include_str!({css}), background: include_bytes!({background}), preview: include_bytes!({preview}), avatar: {avatar} }}",
             json = rust_string(&json_path),
             css = rust_string(&css_path),
             background = rust_string(&background_path),
+            preview = rust_string(&preview_path),
         ));
     }
 

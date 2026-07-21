@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.6.0 — 2026-07-21
+
+- Embedded the complete CodeFace theme library directly below **Appearance** in Codex Settings, with Local and Market views, source editing, import/export, and native/custom switching.
+- Replaced the standalone theme manager with a compact Codex controller for theme settings, CodeFace preferences, restart, update, and close actions.
+- Added automatic full-resolution local previews with lightweight thumbnails, trusted on-demand loading, and cached CodexThemes effect images.
+- Reduced local theme actions to direct **Apply** and **Edit** icons plus an accessible **More** menu for prompt copy, export, market updates, rollback, and deletion.
+- Added standalone language and light/dark appearance preferences, an icon-based back action, and Escape-key navigation.
+- Added native foreground activation when opening CodeFace inside Codex Settings.
+- Added signed-release-aware self-update discovery through GitHub Latest Release, SHA-256 verification, staged replacement, rollback on failure, CDP daemon restoration, and automatic restart on macOS and Windows.
+- Added release checksum assets and enforced parity between the Git tag and the packaged application version.
+- Updated the English and Simplified Chinese READMEs with current controller and embedded-settings screenshots.
+
 ## 1.5.1 — 2026-07-20
 
 - Fixed misleading install actions for CodexThemes skin references that provide only a preview image and no downloadable theme package.

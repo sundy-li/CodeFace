@@ -16,6 +16,7 @@ pub trait PlatformBackend: Send + Sync {
     fn is_running(&self, install: &CodexInstall) -> bool;
     fn close_codex(&self, install: &CodexInstall) -> Result<()>;
     fn launch_codex(&self, install: &CodexInstall, cdp_port: Option<u16>) -> Result<()>;
+    fn focus_codex(&self, install: &CodexInstall) -> Result<()>;
 }
 
 pub fn backend() -> &'static dyn PlatformBackend {

@@ -1,6 +1,6 @@
 [package]
 name = "codeface"
-version = "1.5.1"
+version = "1.6.0"
 edition = "2024"
 description = "Native cross-platform Codex appearance manager"
 license = "MIT"
@@ -16,6 +16,7 @@ reqwest = { version = "0.12", default-features = false, features = ["blocking", 
 rfd = "0.17"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+sha2 = "0.10"
 sysinfo = "0.39"
 sys-locale = "0.3"
 tungstenite = { version = "0.30", features = ["rustls-tls-native-roots"] }
@@ -28,6 +29,9 @@ windows-sys = { version = "0.61", features = [
   "Win32_System_Threading",
   "Win32_UI_WindowsAndMessaging",
 ] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2-app-kit = { version = "0.3.2", features = ["libc"] }
 
 [build-dependencies]
 serde_json = "1"

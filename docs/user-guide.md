@@ -2,21 +2,39 @@
 
 ## Starting CodeFace
 
-Open `CodeFace.app` on macOS or launch `CodeFace.exe` on Windows. CodeFace reads themes from the platform data directory:
+Open `CodeFace.app` on macOS or launch `CodeFace.exe` on Windows. The compact controller loads its own saved language and light/dark appearance, then offers **Open Codex theme settings**, **CodeFace settings**, **Restart Codex**, **Update**, and **Close Codex**. CodeFace reads themes from the platform data directory:
 
 - macOS: `~/Library/Application Support/CodeFace`
 - Windows: `%LOCALAPPDATA%\CodeFace`
 
 ## Managing themes
 
-The top of the list always contains the System Native theme. It has no CodeFace injection, cannot be edited or deleted, and restores the official Codex interface while stopping the injector daemon when applied.
+Select **Open Codex theme settings** in the standalone controller, or open Codex **Settings → CodeFace**. The top of the Local list always contains the System Native theme. It has no theme injection and cannot be edited or deleted. Applying it removes only the theme layer while keeping the loopback control bridge alive, so another custom theme can be selected from Codex Settings. The explicit `--restore` diagnostic and **Close Codex** perform full cleanup instead.
 
-Each custom theme card in the left-hand theme list provides:
+Each selected custom theme provides direct **Apply** and **Edit** icon actions. Its third **More** icon opens the less-frequent actions:
 
-- **Edit**: Open the source editors for `theme.json` and `codeface.css`.
-- **Delete**: Open a deletion confirmation. Confirming permanently removes the corresponding theme directory.
+- **Copy full prompt**
+- **Export**
+- Market update checks, update, and rollback when applicable
+- **Delete**, with a confirmation before permanently removing the theme directory
 
-Double-click a theme card to open the editor. Selecting a theme shows a read-only preview on the right; selecting **Apply Theme** injects it into the current Codex session.
+Selecting a theme shows its large preview on the right; the Apply icon injects it into the current Codex session.
+
+## CodeFace inside Codex Settings
+
+Once Codex is running with CodeFace's loopback CDP session, open Codex **Settings** and select **CodeFace** directly below **Appearance**. The embedded page uses validated Rust theme storage and operations; renderer JavaScript does not write theme files directly.
+
+The embedded page provides:
+
+- Local theme search, previews, native/custom switching, and runtime health rollback
+- Theme creation and source editing for `theme.json` and `codeface.css`, including optional PNG, JPEG, or WebP artwork
+- **Copy full prompt**, delete, export, update checks, and rollback
+- Bounded `.codex-theme` package import and bounded theme-directory import
+- CodexThemes catalog search, trusted local preview, install, and install-and-apply directly from search results; reference-only skins never expose misleading install actions
+
+The page inherits Codex's current language, colors, typography, and light/dark appearance. It has no separate CodeFace Settings tab. Codex lifecycle controls remain in the small standalone CodeFace window.
+
+Switching to the native appearance keeps the CodeFace Settings page mounted. Selecting a custom theme from the same page restores the theme injector and runs the same live health check before reporting success.
 
 ## Creating a theme
 
@@ -38,21 +56,19 @@ When editing an existing theme, select **Copy Complete Prompt**. CodeFace writes
 
 Paste the prompt directly into a local Codex session. Codex can use the absolute path to read and edit that theme directory.
 
-## Language settings
+## Standalone CodeFace window
 
-Open Settings and select:
+The standalone window is a compact Codex controller rather than a second theme manager. **Open Codex theme settings** opens the embedded CodeFace page inside Codex, while **Restart Codex** and **Close Codex** control the Codex lifecycle. **CodeFace settings** contains only two preferences for the standalone window: language (system, English, or Simplified Chinese) and appearance (light or dark). These values are stored in `settings.json` and do not change Codex or the embedded theme page.
 
-- Follow system
-- English
-- Simplified Chinese
-
-CodeFace follows the operating system's preferred language until an explicit choice is saved. Changes take effect immediately and are written to `settings.json`.
+**Update** compares the embedded application version with the tag of GitHub's Latest Release. When a newer `major.minor.patch` version is available, CodeFace downloads the fixed platform asset (`CodeFace-macOS.zip` or `CodeFace-Windows.zip`) and its `.sha256` file, verifies the archive, stages the new installation, replaces the current app through a helper process, and restarts. A release is eligible for automatic update only when its tag matches the version in `gui/Cargo.toml` and both the ZIP and checksum assets are present. CodeFace restores the current installation if replacement or restart fails.
 
 ## Codex lifecycle
 
-- **Close Codex** removes the CodeFace injection and closes Codex.
-- **Restart Codex** removes the injection and restarts Codex in its official mode.
-- Applying a theme again establishes a loopback-only CDP session.
+- **Close Codex** removes the CodeFace theme and Settings bridge, then closes Codex.
+- **Restart Codex** restarts Codex in native appearance with a loopback-only CDP session and restores the Settings bridge.
+- Applying a theme again reuses that CDP session and runs the live health gate.
+
+The daemon backs off while the CDP endpoint is unavailable and reconnects when Codex returns on the same loopback port.
 
 ## Install from CodexThemes
 

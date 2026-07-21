@@ -111,6 +111,7 @@ struct BundledTheme {
     json: &'static str,
     css: &'static str,
     background: &'static [u8],
+    preview: &'static [u8],
     avatar: Option<&'static [u8]>,
 }
 
@@ -341,6 +342,7 @@ fn install_bundled_themes_into(themes_root: &Path) -> Result<()> {
         let mut value = validate_json(theme.json)?;
         value["id"] = Value::String(theme.id.into());
         value["image"] = Value::String("background.png".into());
+        value["preview"] = Value::String("preview.png".into());
         if theme.avatar.is_some() {
             value["avatar"] = Value::String("avatar.png".into());
         }
@@ -350,6 +352,7 @@ fn install_bundled_themes_into(themes_root: &Path) -> Result<()> {
         )?;
         atomic_write(&root.join("codeface.css"), theme.css.as_bytes())?;
         atomic_write(&root.join("background.png"), theme.background)?;
+        atomic_write(&root.join("preview.png"), theme.preview)?;
         if let Some(avatar) = theme.avatar {
             atomic_write(&root.join("avatar.png"), avatar)?;
         } else if root.join("avatar.png").is_file() {
@@ -928,6 +931,20 @@ pub fn install_from_codexthemes(input: &str) -> Result<String> {
     let id = codexthemes_id(input)?;
     let bytes = download_codexthemes_package(&id)?;
     install_codexthemes_package_into(&bytes, &id, &paths::themes_root()?)
+}
+
+pub fn import_codextheme_package(bytes: &[u8]) -> Result<String> {
+    if bytes.len() > CODEXTHEMES_MAX_PACKAGE_SIZE {
+        bail!("CodexThemes package cannot exceed 30 MiB");
+    }
+    let package: Value =
+        serde_json::from_slice(bytes).context("CodexThemes package is not valid UTF-8 JSON")?;
+    let id = package
+        .pointer("/manifest/id")
+        .and_then(Value::as_str)
+        .context("CodexThemes package manifest is missing its ID")?;
+    let id = codexthemes_id(id)?;
+    install_codexthemes_package_into(bytes, &id, &paths::themes_root()?)
 }
 
 fn export_theme_from_roots(id: &str, themes_root: &Path, exports_root: &Path) -> Result<PathBuf> {
@@ -1580,6 +1597,7 @@ mod tests {
             .expect("parse manifest");
             assert_eq!(json["id"], theme.id);
             assert_eq!(json["image"], "background.png");
+            assert_eq!(json["preview"], "preview.png");
             assert_eq!(
                 json["suggestions"].as_array().map(Vec::len),
                 Some(0),
@@ -1594,6 +1612,7 @@ mod tests {
             );
             assert!(theme_root.join("codeface.css").is_file());
             image::open(theme_root.join("background.png")).expect("decode background");
+            image::open(theme_root.join("preview.png")).expect("decode effect preview");
             if theme.avatar.is_some() {
                 assert_eq!(json["avatar"], "avatar.png");
                 image::open(theme_root.join("avatar.png")).expect("decode avatar");
@@ -1618,6 +1637,10 @@ mod tests {
         assert_eq!(
             fs::read(theme_root.join("background.png")).expect("read background"),
             BUNDLED_THEMES[0].background
+        );
+        assert_eq!(
+            fs::read(theme_root.join("preview.png")).expect("read effect preview"),
+            BUNDLED_THEMES[0].preview
         );
         let json: Value = serde_json::from_str(
             &fs::read_to_string(theme_root.join("theme.json")).expect("read manifest"),
