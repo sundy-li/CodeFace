@@ -15,7 +15,7 @@ The standalone CodeFace app is a compact controller for opening theme management
 
 ### Standalone controller
 
-![CodeFace application interface](resources/CodeFace.png)
+<img src="resources/CodeFace.png" alt="CodeFace application interface" width="560">
 
 ### Theme management inside Codex
 

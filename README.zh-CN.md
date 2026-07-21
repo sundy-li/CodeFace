@@ -15,7 +15,7 @@ CodeFace 独立 App 是一个精简控制器，用于打开主题管理、修改
 
 ### 独立控制器
 
-![CodeFace 应用主界面](resources/CodeFace.png)
+<img src="resources/CodeFace.png" alt="CodeFace 应用主界面" width="560">
 
 ### Codex 内的主题管理
 
